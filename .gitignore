@@ -44,7 +44,12 @@ data/inventory.db
 # Research and planning folders (local only)
 Evaluated Research/
 Final Evlation/
+Final Evlation before proceeding/
 Problem Statemen and Imp docs/
+Context Logs/
+Docs/
+logs/
+DEPLOYMENT_OPTIONS.md
 
 # Temporary files
 *.tmp
