@@ -22,6 +22,8 @@ from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from dotenv import load_dotenv
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
+import numpy as np
+from scipy.stats import norm
 
 from models.schemas import (
     InventoryRequest, 
@@ -40,6 +42,7 @@ from utils.logging import setup_logging, get_logger
 from utils import metrics
 from utils.rate_limiter import limiter, rate_limit_exceeded_handler, RATE_LIMITS
 from utils.notifications import send_slack_notification, send_webhook_callback
+from utils.telegram import send_telegram_notification, send_telegram_low_confidence_alert
 from utils.database import (
     init_database, 
     save_order, 
@@ -152,6 +155,121 @@ async def root():
 async def dashboard():
     """Serve the dashboard UI."""
     return FileResponse("static/dashboard.html")
+
+
+@app.get("/verify-calculation/{product_id}")
+async def verify_calculation(
+    product_id: str,
+    api_key: str = Depends(get_api_key)
+):
+    """
+    Show step-by-step calculation verification for a product.
+    Returns all intermediate values and formulas used.
+    """
+    try:
+        # Load data using mock data loader directly
+        from agents.data_loader import load_mock_data
+        data = load_mock_data(product_id)
+        
+        # Get raw values (convert numpy arrays to lists for JSON serialization)
+        demand = list(data["demand_history"]) if hasattr(data["demand_history"], 'tolist') else list(data["demand_history"])
+        lead_time = int(data["lead_time_days"])
+        service_level = float(data["service_level"])
+        current_stock = int(data["current_stock"])
+        unit_price = float(data.get("unit_price", 0))
+        
+        # Step-by-step calculations
+        avg_demand = float(np.mean(demand))
+        std_dev = float(np.std(demand, ddof=1))
+        z_score = float(norm.ppf(service_level))
+        
+        # Safety Stock = Z × σ × √L
+        safety_stock = z_score * std_dev * np.sqrt(lead_time)
+        
+        # ROP = (Avg Demand × Lead Time) + Safety Stock
+        reorder_point = (avg_demand * lead_time) + safety_stock
+        
+        # Shortage
+        shortage = max(0, reorder_point - current_stock)
+        
+        # Order quantity
+        order_qty = round(shortage) if shortage > 0 else 0
+        
+        return {
+            "product_id": product_id,
+            "inputs": {
+                "demand_history": demand,
+                "lead_time_days": lead_time,
+                "service_level": service_level,
+                "current_stock": current_stock,
+                "unit_price": unit_price
+            },
+            "step_by_step": {
+                "step_1_avg_demand": {
+                    "formula": "Average = Sum(demand) / Count",
+                    "calculation": f"{sum(demand)} / {len(demand)}",
+                    "result": float(round(avg_demand, 2)),
+                    "unit": "units/day"
+                },
+                "step_2_std_dev": {
+                    "formula": "σ = √(Σ(x - μ)² / (n-1))",
+                    "result": float(round(std_dev, 2)),
+                    "unit": "units"
+                },
+                "step_3_z_score": {
+                    "formula": f"Z = NORM.INV({service_level})",
+                    "description": f"For {service_level*100}% service level",
+                    "result": float(round(z_score, 4))
+                },
+                "step_4_safety_stock": {
+                    "formula": "SS = Z × σ × √L",
+                    "calculation": f"{z_score:.3f} × {std_dev:.2f} × √{lead_time}",
+                    "result": float(round(safety_stock, 2)),
+                    "unit": "units"
+                },
+                "step_5_reorder_point": {
+                    "formula": "ROP = (Avg Demand × Lead Time) + Safety Stock",
+                    "calculation": f"({avg_demand:.2f} × {lead_time}) + {safety_stock:.2f}",
+                    "result": float(round(reorder_point, 2)),
+                    "unit": "units"
+                },
+                "step_6_shortage": {
+                    "formula": "Shortage = ROP - Current Stock",
+                    "calculation": f"{reorder_point:.2f} - {current_stock}",
+                    "result": float(round(shortage, 2)),
+                    "unit": "units"
+                }
+            },
+            "decision": {
+                "needs_restock": bool(current_stock < reorder_point),
+                "order_quantity": int(order_qty),
+                "estimated_cost": float(round(order_qty * unit_price, 2)),
+                "reason": f"Current stock ({current_stock}) is {'below' if current_stock < reorder_point else 'above'} reorder point ({reorder_point:.0f})"
+            },
+            "formulas_reference": {
+                "safety_stock": "SS = Z × σ × √L (Z=service level Z-score, σ=demand std dev, L=lead time)",
+                "reorder_point": "ROP = (Avg Daily Demand × Lead Time) + Safety Stock",
+                "eoq": "EOQ = √(2DS/H) (D=annual demand, S=order cost, H=holding cost)"
+            }
+        }
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=f"Product not found: {str(e)}")
+    except Exception as e:
+        import traceback
+        print(f"VERIFICATION ERROR: {str(e)}")
+        traceback.print_exc()
+        logger.error(f"Verification error: {str(e)}", exc_info=True)
+        raise HTTPException(status_code=500, detail=f"Calculation error: {str(e)}")
+
+
+@app.get("/telegram/setup")
+async def telegram_setup():
+    """
+    Get Telegram bot setup information with QR code.
+    Scan to open the bot and start receiving notifications.
+    """
+    from utils.telegram import get_telegram_setup_info
+    return get_telegram_setup_info()
 
 
 @app.post("/inventory-trigger", response_model=InventoryResponse)
@@ -307,6 +425,11 @@ async def inventory_trigger(
         if recommendation["confidence"] < CONFIDENCE_THRESHOLD:
             # Send Slack notification for low-confidence orders
             await send_slack_notification(order_data)
+            # Send Telegram alert for low-confidence orders requiring review
+            asyncio.create_task(send_telegram_low_confidence_alert(order_data))
+        else:
+            # Send Telegram notification for executed orders
+            asyncio.create_task(send_telegram_notification(order_data))
         
         # Send webhook callback if provided
         if inventory_request.callback_url:

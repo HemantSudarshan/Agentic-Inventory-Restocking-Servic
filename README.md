@@ -1,82 +1,114 @@
 # 🤖 Agentic Inventory Restocking Service
 
-**Enterprise-grade AI inventory management with LLM reasoning and real-time monitoring**
+[![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
+[![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green.svg)](https://fastapi.tiangolo.com/)
+[![AI Powered](https://img.shields.io/badge/AI-Gemini%20%2B%20Llama-purple.svg)](https://ai.google.dev/)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[![Production Ready](https://img.shields.io/badge/status-production--ready-brightgreen)]()
-[![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-blue)]()
-[![Gemini 2.0](https://img.shields.io/badge/Gemini-2.0%20Flash-orange)]()
-[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue)]()
-
-> An intelligent inventory management system that combines safety stock calculations with AI-powered decision making. Features production-grade monitoring, batch processing, and confidence-based routing for automated restocking with human oversight.
+> **AI-Powered Inventory Management System** that analyzes demand forecasts and autonomously generates purchase orders or transfer requests with human oversight for critical decisions.
 
 ---
 
-## ✨ Key Features
+## 🌟 Overview
 
-### Core Intelligence
-- **🧠 AI-Powered Reasoning**: Gemini 2.0 Flash analyzes inventory with contextual recommendations
-- **📊 Safety Stock Calculations**: Industry-standard formulas (SS, ROP, EOQ)
-- **🔄 99.9% Uptime**: Automatic failover (Gemini → Groq LLM chain)
-- **🎯 Smart Routing**: Auto-execute high-confidence decisions (≥0.6), flag low for review
+Instead of simple alerts when inventory runs low, this service uses **Large Language Models (LLMs)** to:
+- **Analyze demand trends** (rising, falling, seasonal)
+- **Determine crisis severity** (avoid overstock vs prevent stockouts)
+- **Generate smart actions** (purchase orders or warehouse transfers)
+- **Self-execute high-confidence orders** with human approval for uncertain cases
 
-### Phase 2: Enterprise Features
-- **📦 Batch Processing**: Process up to 20 products in parallel
-- **💾 Database Persistence**: SQLite with full audit trail
-- **📊 Real-time Dashboard**: Monitor orders, approve/reject pending items
-- **🔔 Slack Notifications**: Alerts for low-confidence orders
-- **⚡ Rate Limiting**: Protect endpoints (10/min for triggers)
-- **🔗 Webhook Callbacks**: External integration support
-- **🚀 CI/CD Pipeline**: GitHub Actions for automated testing
-
-### Production Ready
-- **🔒 Fail-Closed Security**: Explicit DEV_MODE required for insecure access
-- **⚙️ Configurable Thresholds**: AUTO_EXECUTE_THRESHOLD environment variable
-- **🛡️ Input Sanitization**: Prompt injection prevention
-- **📈 Prometheus Metrics**: Full observability
-- **🔀 Dual Modes**: Mock CSV + real-time input API
+Built for **production environments** with enterprise-grade features: multi-channel notifications, audit trails, rate limiting, and real-time monitoring.
 
 ---
 
-## 🚀 Quick Start
+## 🚀 Key Features
 
-### Prerequisites
-- Python 3.12+
-- Gemini API key (free at https://aistudio.google.com/app/apikey)
-- Groq API key (optional, free at https://console.groq.com/keys)
+### 🧠 AI-Powered Decision Making
+- **Dual LLM System**: Gemini 2.0 Flash (primary) + Llama 3.3 70B (backup via Groq)
+- **Automatic failover**: 99.9% uptime even if one provider is down
+- **Confidence scoring**: Auto-execute high-confidence orders (≥0.6), flag low-confidence for human review
+- **Context-aware reasoning**: Analyzes 7-day demand trends, lead times, and safety stock calculations
 
-### Installation
+### 📊 Production-Ready Architecture
+- **Async FastAPI**: Non-blocking I/O with thread pool offloading for heavy operations
+- **Database persistence**: SQLite with full audit trail for compliance
+- **Rate limiting**: Protects endpoints from abuse (10-60 req/min)
+- **Multi-channel notifications**: Slack (enterprise teams) + Telegram (mobile alerts)
+- **Batch processing**: Process up to 20 products in parallel
+- **Real-time dashboard**: Monitor orders, approve/reject pending actions
 
+### 🔒 Security & Reliability
+- **API Key authentication**: Fail-closed security model
+- **Input validation**: Strict Pydantic schema enforcement
+- **Structured logging**: Production-ready with `structlog`
+- **Health monitoring**: Prometheus metrics integration
+- **CI/CD pipeline**: GitHub Actions with automated testing
+
+---
+
+## 📋 System Requirements
+
+- **Python**: 3.11 or higher
+- **OS**: Windows, macOS, Linux
+- **API Keys** (free tiers available):
+  - Google AI Studio (Gemini): [Get key](https://aistudio.google.com/app/apikey)
+  - Groq (Llama backup): [Get key](https://console.groq.com/keys)
+
+---
+
+## ⚡ Quick Start
+
+### 1. Clone the Repository
 ```bash
-# Clone the repository
-git clone <your-repo-url>
-cd "Agentic Inventory Restocking Service"
-
-# Install dependencies
-pip install -r requirements.txt
-
-# Configure API keys
-cp .env.example .env
-# Edit .env and add your keys:
-# GOOGLE_API_KEY=your_gemini_key
-# GROQ_API_KEY=your_groq_key
-# API_KEY=your_secure_api_key
-
-# Run the server
-python -m uvicorn main:app --reload
+git clone https://github.com/yourusername/agentic-inventory-service.git
+cd agentic-inventory-service
 ```
 
-The server will start at `http://localhost:8000`
+### 2. Install Dependencies
+```bash
+pip install -r requirements.txt
+```
+
+### 3. Configure Environment
+Create a `.env` file:
+```env
+# LLM Configuration
+GOOGLE_API_KEY=your_gemini_api_key_here
+GROQ_API_KEY=your_groq_api_key_here
+LLM_PROVIDER=auto  # auto, primary, or backup
+
+# Security
+API_KEY=dev-inventory-agent-2026
+
+# Notifications (Optional)
+SLACK_WEBHOOK_URL=https://hooks.slack.com/services/YOUR/WEBHOOK/URL
+TELEGRAM_BOT_TOKEN=your_bot_token
+TELEGRAM_CHAT_ID=your_chat_id
+
+# Confidence Threshold (0.0 - 1.0)
+CONFIDENCE_THRESHOLD=0.6
+```
+
+### 4. Initialize Database
+```bash
+python -c "from utils.database import init_database; import asyncio; asyncio.run(init_database())"
+```
+
+### 5. Run the Server
+```bash
+python -m uvicorn main:app --reload --port 8000
+```
+
+🎉 **Visit**: http://localhost:8000/dashboard
 
 ---
 
-## 📖 Usage
+## 📡 API Usage
 
-### Mock Mode (Using CSV Data)
-Perfect for testing and demos:
-
+### Trigger Inventory Analysis
 ```bash
 curl -X POST http://localhost:8000/inventory-trigger \
-  -H "X-API-Key: your_secure_api_key" \
+  -H "X-API-Key: dev-inventory-agent-2026" \
   -H "Content-Type: application/json" \
   -d '{
     "product_id": "STEEL_SHEETS",
@@ -84,272 +116,346 @@ curl -X POST http://localhost:8000/inventory-trigger \
   }'
 ```
 
-### Input Mode (Real-time Data)
-For production with live inventory:
+**Response**:
+```json
+{
+  "status": "executed",
+  "safety_stock": 57.57,
+  "reorder_point": 897.57,
+  "current_stock": 150,
+  "shortage": 747.57,
+  "recommended_action": "restock",
+  "recommended_quantity": 898,
+  "confidence_score": 0.9,
+  "order": {
+    "id": "PO-20260206012356-STEEL_SHEETS",
+    "type": "purchase_order",
+    "items": [{"material_id": "STEEL_SHEETS", "quantity": 898}],
+    "cost": 449000.0
+  },
+  "reasoning": "Current stock is critically low..."
+}
+```
 
+### View Calculation Details
 ```bash
-curl -X POST http://localhost:8000/inventory-trigger \
-  -H "X-API-Key: your_secure_api_key" \
+curl http://localhost:8000/verify-calculation/STEEL_SHEETS?mode=mock \
+  -H "X-API-Key: dev-inventory-agent-2026"
+```
+
+### Batch Processing
+```bash
+curl -X POST http://localhost:8000/inventory-trigger-batch \
+  -H "X-API-Key: dev-inventory-agent-2026" \
   -H "Content-Type: application/json" \
   -d '{
-    "product_id": "CUSTOM_WIDGET",
-    "mode": "input",
-    "current_stock": 75,
-    "demand_history": [120, 135, 128, 140, 132, 145, 138],
-    "lead_time_days": 5,
-    "service_level": 0.95,
-    "unit_price": 85.50
+    "products": ["STEEL_SHEETS", "COPPER_WIRE", "PLASTIC_PELLETS"],
+    "mode": "mock"
   }'
 ```
 
-### Debug Endpoint
-View calculations without triggering orders:
+---
 
-```bash
-curl -X GET "http://localhost:8000/debug/STEEL_SHEETS?mode=mock" \
-  -H "X-API-Key: your_secure_api_key"
-```
+## 🎨 Dashboard
+
+Access the real-time monitoring dashboard at **http://localhost:8000/dashboard**
+
+**Features**:
+- 📊 Live statistics (Total Orders, Completed, Pending, Avg AI Score)
+- 📋 Recent orders table with approve/reject actions
+- 🎯 Quick trigger panel for manual requests
+- 📈 Order distribution chart
+- 🔍 Calculation verification modal
 
 ---
 
 ## 🏗️ Architecture
 
+### Agentic Workflow (3 Steps)
+
 ```
-┌─────────────┐
-│   Request   │
-└──────┬──────┘
-       │
-       ▼
-┌──────────────────┐
-│  Load Data       │  (Mock CSV or Input API)
-│  - Dual Mode     │
-└──────┬───────────┘
-       │
-       ▼
-┌──────────────────┐
-│ Safety Stock     │  SS = Z × σ × √L
-│ Calculations     │  ROP = (Avg Demand × Lead Time) + SS
-└──────┬───────────┘
-       │
-       ▼
-┌──────────────────┐
-│ Stock Check      │  current_stock < ROP?
-└──────┬───────────┘
-       │ YES
-       ▼
-┌──────────────────┐
-│ AI Reasoning     │  Gemini 2.0 Flash
-│ (Gemini/Groq)    │  → Contextual Analysis
-└──────┬───────────┘
-       │
-       ▼
-┌──────────────────┐
-│ Action Generator │  PO-xxx or TR-xxx
-│                  │  + Order Metadata
-└──────┬───────────┘
-       │
-       ▼
-┌──────────────────┐
-│ Confidence Route │  ≥0.6: Auto-execute
-│                  │  <0.6: Human review
-└──────────────────┘
+┌─────────────────────────────────────────────────────────┐
+│  1. DATA RETRIEVAL (agents/data_loader.py)             │
+│  └─ Load mock demand forecast CSV                      │
+│     • demand_history: [100, 120, 110, 130, ...]        │
+│     • current_stock, lead_time, service_level          │
+└─────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────┐
+│  2. SAFETY CALCULATIONS (agents/safety_calculator.py)  │
+│  └─ Statistical inventory optimization                  │
+│     • Average demand & standard deviation              │
+│     • Safety stock (Z-score × σ)                       │
+│     • Reorder point (demand × lead time + SS)          │
+└─────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────┐
+│  3. AI REASONING (agents/reasoning_agent.py)           │
+│  └─ LLM analyzes context and decides:                  │
+│     • Is this a crisis or just demand dropping?        │
+│     • Should we restock (PO) or transfer?             │
+│     • How much to order?                               │
+│     • Confidence score (0.0 - 1.0)                     │
+└─────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────┐
+│  4. ACTION GENERATION (agents/action_agent.py)         │
+│  └─ Generate JSON payload:                             │
+│     • Purchase Order (type: "purchase_order")          │
+│     • Transfer Order (type: "transfer")                │
+└─────────────────────────────────────────────────────────┘
+                            ↓
+┌─────────────────────────────────────────────────────────┐
+│  5. ROUTING (main.py)                                  │
+│  └─ Based on confidence:                               │
+│     • High (≥0.6) → Auto-execute + Telegram notify     │
+│     • Low (<0.6) → Pending + Slack alert + Human review│
+└─────────────────────────────────────────────────────────┘
 ```
+
+### Technology Stack
+
+| Layer | Technology |
+|-------|-----------|
+| **Backend** | FastAPI (async Python framework) |
+| **AI/LLM** | LangChain + Gemini 2.0 Flash + Llama 3.3 70B |
+| **Database** | SQLite (with aiosqlite for async) |
+| **Caching** | functools.lru_cache |
+| **Rate Limiting** | SlowAPI |
+| **Monitoring** | Prometheus metrics |
+| **Logging** | structlog |
+| **Notifications** | Slack webhooks + Telegram Bot API |
+| **Frontend** | Tailwind CSS + Chart.js + Lucide icons |
+| **CI/CD** | GitHub Actions |
 
 ---
 
-## 📊 Example Response
+## 📂 Project Structure
 
-```json
-{
-  "product_id": "STEEL_SHEETS",
-  "mode": "mock",
-  "status": "executed",
-  "action": "restock",
-  "quantity": 898,
-  "confidence": 0.9,
-  "llm_provider": "gemini",
-  "safety_stock": 57.57,
-  "reorder_point": 898.07,
-  "current_stock": 150,
-  "shortage": 748.07,
-  "reasoning": "The current stock is 748 units below the reorder point, and the average daily demand is high. Given the lead time of 7 days and the recent demand trend, restocking is necessary to avoid stockouts.",
-  "order_details": {
-    "order_id": "PO-2026-02-06-STEEL_SHEETS",
-    "quantity": 898,
-    "estimated_cost": 449000,
-    "priority": "high"
-  }
-}
 ```
-
----
-
-## 🔧 API Endpoints
-
-### Core Endpoints
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/` | GET | Health check | ❌ |
-| `/inventory-trigger` | POST | Analyze single product | ✅ |
-| `/debug/{product_id}` | GET | View calculations only | ✅ |
-| `/metrics` | GET | Prometheus metrics | ❌ |
-
-### Phase 2 Endpoints
-| Endpoint | Method | Description | Auth Required |
-|----------|--------|-------------|---------------|
-| `/dashboard` | GET | Monitoring dashboard UI | ❌ |
-| `/dashboard/stats` | GET | Dashboard statistics API | ✅ |
-| `/inventory-trigger-batch` | POST | Process multiple products | ✅ |
-| `/orders` | GET | List all orders (filterable) | ✅ |
-| `/orders/{id}` | GET | Get single order details | ✅ |
-| `/orders/{id}/approve` | POST | Approve pending order | ✅ |
-| `/orders/{id}/reject` | POST | Reject pending order | ✅ |
-
-**Interactive Docs**: `http://localhost:8000/docs`  
-**Dashboard**: `http://localhost:8000/dashboard`
+agentic-inventory-service/
+├── agents/                  # Core agentic logic
+│   ├── data_loader.py       # CSV & API data retrieval
+│   ├── safety_calculator.py # Statistical inventory formulas
+│   ├── reasoning_agent.py   # LLM decision-making
+│   └── action_agent.py      # Order generation
+├── models/
+│   └── schemas.py           # Pydantic models for validation
+├── utils/                   # Infrastructure utilities
+│   ├── database.py          # SQLite persistence
+│   ├── logging.py           # Structured logging setup
+│   ├── rate_limiter.py      # API rate limiting
+│   ├── metrics.py           # Prometheus metrics
+│   ├── notifications.py     # Slack & webhook integration
+│   └── telegram.py          # Telegram bot notifications
+├── data/
+│   ├── mock_inventory.csv   # Product catalog
+│   └── mock_demand.csv      # 7-day demand history
+├── static/
+│   └── dashboard.html       # Real-time monitoring UI
+├── tests/                   # Unit & integration tests
+├── main.py                  # FastAPI application
+├── requirements.txt
+├── .env.example
+└── README.md
+```
 
 ---
 
 ## 🧪 Testing
 
+### Run Unit Tests
 ```bash
-# Run all tests
-python -m pytest tests/ -v
-
-# Run with coverage
-python -m pytest tests/ --cov
-
-# Test specific module
-python -m pytest tests/test_safety_calc.py -v
+pytest tests/ -v
 ```
 
-**Test Coverage**: 90% (28/31 tests passing)
+### Test Coverage
+```bash
+pytest tests/ --cov=. --cov-report=html
+```
+
+### Integration Testing
+```bash
+# Test with real LLM (requires API keys)
+pytest tests/test_workflow.py -v -s
+```
+
+---
+
+## 🔔 Notification Setup
+
+### Slack Integration
+1. Create a Slack webhook: https://api.slack.com/messaging/webhooks
+2. Add to `.env`: `SLACK_WEBHOOK_URL=https://hooks.slack.com/...`
+3. Low-confidence orders auto-send to Slack with approve/reject buttons
+
+### Telegram Integration
+1. Create bot via @BotFather on Telegram → `/newbot`
+2. Get your Chat ID from @userinfobot
+3. Add to `.env`:
+   ```env
+   TELEGRAM_BOT_TOKEN=1234567890:ABC...
+   TELEGRAM_CHAT_ID=123456789
+   ```
+4. All executed orders send Telegram notifications
 
 ---
 
 ## 📈 Monitoring
 
-Access Prometheus metrics at `http://localhost:8000/metrics`:
+### Prometheus Metrics
+Available at: http://localhost:8000/metrics
 
-- `inventory_trigger_total`: Request counts by mode/status
-- `llm_calls_total`: LLM usage by provider
-- `orders_generated_total`: Orders by action type
-- `current_safety_stock`: Real-time safety stock levels
-- `current_reorder_point`: Real-time ROP by product
+**Key Metrics**:
+- `inventory_trigger_total` - Total API calls
+- `orders_generated_total` - Orders by type (PO/Transfer)
+- `llm_calls_total` - LLM usage by provider
+- `current_safety_stock` - Real-time safety stock levels
+- `inventory_shortage_total` - Shortage events
 
----
-
-## 🛠️ Technology Stack
-
-- **Framework**: FastAPI (high-performance async)
-- **LLMs**: Gemini 2.0 Flash (primary), Groq llama-3.3-70b (backup)
-- **Orchestration**: LangChain for LLM management
-- **Data**: Pandas, NumPy, SciPy for calculations
-- **Validation**: Pydantic v2 for type safety
-- **Logging**: structlog (JSON structured logs)
-- **Metrics**: prometheus-client
-- **Retry Logic**: tenacity for resilience
+### Dashboard Stats
+- Total Orders (all-time)
+- Completed vs Pending
+- Average AI Confidence Score
+- Recent order activity
 
 ---
 
-## 🔒 Security Features
+## 🚢 Deployment
 
-- ✅ **Fail-Closed Authentication**: Requires `DEV_MODE=true` explicitly for insecure access
-- ✅ **API Key Protection**: `X-API-Key` header validation
-- ✅ **Rate Limiting**: slowapi (10/min on triggers, 5/min on batch)
-- ✅ **Input Sanitization**: Prompt injection prevention
-- ✅ **Environment Secrets**: No credentials in code
-- ✅ **Pydantic Validation**: Type-safe request/response
-- ✅ **Configurable Thresholds**: `AUTO_EXECUTE_THRESHOLD` for business logic
-
----
-
-## 🐳 Docker Deployment
-
+### Docker (Recommended)
 ```bash
-# Build image
 docker build -t inventory-agent .
-
-# Run container
 docker run -p 8000:8000 --env-file .env inventory-agent
-
-# Or use docker-compose
-docker-compose up
 ```
 
----
+### Google Cloud Run
+```bash
+gcloud run deploy inventory-agent \
+  --source . \
+  --region us-central1 \
+  --allow-unauthenticated
+```
 
-## 💰 Cost Estimates
-
-- **Development**: $0 (free tiers for Gemini + Groq)
-- **Light usage** (~100 req/day): $0-5/month
-- **Medium usage** (~1000 req/day): $10-30/month
-- **Heavy usage** (~10K req/day): $50-100/month
-
-*Actual costs depend on LLM usage patterns*
-
----
-
-## 📚 Documentation
-
-- [`PDR.md`](./PDR.md) - Product Design Review
-- [`FINAL_IMPLEMENTATION_PLAN.md`](./FINAL_IMPLEMENTATION_PLAN.md) - Implementation strategy
-- [`Context Logs/`](./Context%20Logs/) - Development logs and test results
-  - [`API_TEST_RESULTS.md`](./Context%20Logs/API_TEST_RESULTS.md) - Complete test verification
-  - [`PRODUCTION_SUMMARY.md`](./Context%20Logs/PRODUCTION_SUMMARY.md) - Deployment guide
+### Railway / Render
+1. Connect GitHub repository
+2. Set environment variables in dashboard
+3. Deploy with one click
 
 ---
 
-## 🎯 Project Status
+## 🔐 Security Best Practices
 
-**Version**: v2.0.0 ✅  
-**Status**: Production-Ready  
-**Last Updated**: 2026-02-06  
-**Response Time**: 3-4 seconds (target <5s)  
-**Test Coverage**: 90%
-
-### Changelog
-- **v2.0.0** (Feb 2026): Enterprise features - Dashboard, batch processing, database, CI/CD
-- **v1.0.0** (Feb 2026): Core agentic system with LLM reasoning
-
-All features verified with real LLM integration and comprehensive testing.
+1. **Never commit `.env` files** - Use `.env.example` as template
+2. **Rotate API keys regularly** - Especially for production
+3. **Use strong API_KEY** - Generate with `openssl rand -hex 32`
+4. **Enable HTTPS** - Use reverse proxy (nginx/Caddy) in production
+5. **Monitor audit logs** - Check `data/inventory.db` → `audit_log` table
 
 ---
 
-## 🤝 Contributing
+## 🛠️ Configuration
 
-This is a portfolio project demonstrating:
-- AI/LLM integration patterns
-- Production-ready FastAPI development
-- Safety stock calculation implementation
-- Confidence-based decision routing
-- Comprehensive testing and observability
+### Environment Variables
 
-Feel free to fork and adapt for your own use cases!
+| Variable | Default | Description |
+|----------|---------|-------------|
+| `GOOGLE_API_KEY` | - | Gemini API key (required) |
+| `GROQ_API_KEY` | - | Groq API key (optional, for backup) |
+| `LLM_PROVIDER` | `auto` | `auto`, `primary`, or `backup` |
+| `API_KEY` | - | Protect endpoints (required for production) |
+| `CONFIDENCE_THRESHOLD` | `0.6` | Auto-execute threshold (0.0 - 1.0) |
+| `SLACK_WEBHOOK_URL` | - | Slack notifications (optional) |
+| `TELEGRAM_BOT_TOKEN` | - | Telegram bot token (optional) |
+| `TELEGRAM_CHAT_ID` | - | Telegram chat ID (optional) |
+
+---
+
+## 🐛 Troubleshooting
+
+### Issue: "LLM_PROVIDER not configured"
+**Solution**: Add `GOOGLE_API_KEY` to `.env` file
+
+### Issue: "403 Forbidden" on API calls
+**Solution**: Include `X-API-Key` header with your API key
+
+### Issue: Server won't start
+**Solution**: Check `uvicorn main:app --reload` logs, ensure port 8000 is free
+
+### Issue: No Telegram notifications
+**Solution**: Verify `TELEGRAM_BOT_TOKEN` and `TELEGRAM_CHAT_ID` in `.env`, restart server
+
+---
+
+## 🎯 Future Enhancements
+
+### Phase 4: Advanced AI Features
+- [ ] **Multi-product optimization** - Holistic inventory planning across all SKUs
+- [ ] **Seasonal forecasting** - ARIMA/Prophet models for demand prediction
+- [ ] **Cost optimization** - Factor in supplier pricing, shipping costs, volume discounts
+- [ ] **Supplier recommendation** - AI suggests best vendor based on pricing, lead time, reliability
+- [ ] **Anomaly detection** - Alert on unusual demand spikes/drops
+
+### Phase 5: Enterprise Integration
+- [ ] **ERP connectors** - SAP, Oracle, NetSuite integration
+- [ ] **Real-time data sync** - WebSocket streams from warehouse systems
+- [ ] **Multi-warehouse support** - Global inventory visibility and transfers
+- [ ] **Role-based access control (RBAC)** - Approver workflows, audit trails
+- [ ] **Email notifications** - SendGrid/SES integration
+
+### Phase 6: Advanced UI/UX
+- [ ] **React/Vue dashboard** - Modern SPA with real-time updates
+- [ ] **Mobile app** - React Native/Flutter for on-the-go approvals
+- [ ] **Data visualization** - Advanced charts (demand trends, stock levels over time)
+- [ ] **Approval workflows** - Multi-level approval chains for large orders
+- [ ] **Dark mode** - User preference toggle
+
+### Phase 7: AI Model Improvements
+- [ ] **Fine-tuned models** - Train on company-specific inventory data
+- [ ] **Multi-agent collaboration** - Separate agents for demand forecasting, pricing, supplier selection
+- [ ] **Reinforcement learning** - Learn from past order outcomes to improve recommendations
+- [ ] **Natural language queries** - "Show me all products below safety stock with rising demand"
+
+### Phase 8: Scalability & Performance
+- [ ] **Redis caching** - Distributed cache for high-traffic scenarios
+- [ ] **PostgreSQL migration** - Scale beyond SQLite for enterprise workloads
+- [ ] **Horizontal scaling** - Kubernetes deployment with load balancing
+- [ ] **Message queue** - RabbitMQ/Kafka for async order processing
+- [ ] **CDN integration** - Cloudflare for static assets
+
+---
+
+## 👨‍💻 Author
+
+**Hemant Sudarshan**  
+[![LinkedIn](https://img.shields.io/badge/LinkedIn-Connect-blue?style=flat&logo=linkedin)](https://www.linkedin.com/in/hemant-sudarshan-01633928a/)
 
 ---
 
 ## 📄 License
 
-MIT License - See LICENSE file for details
-
----
-
-## 👤 Author
-
-**Your Name**  
-- GitHub: [@yourusername](https://github.com/yourusername)
-- LinkedIn: [Your Profile](https://linkedin.com/in/yourprofile)
-- Email: your.email@example.com
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
 
 ---
 
 ## 🙏 Acknowledgments
 
-- Google AI Studio for Gemini API access
-- Groq for backup LLM infrastructure
-- FastAPI community for excellent documentation
+- **Google AI Studio** - Gemini 2.0 Flash API
+- **Groq** - Lightning-fast Llama 3.3 70B inference
+- **FastAPI** - Modern Python web framework
+- **LangChain** - LLM orchestration toolkit
+- **Tailwind CSS** - Utility-first CSS framework
 
 ---
 
-**Built with ❤️ showcasing modern AI/LLMOps practices**
+## 📞 Support
+
+- **Issues**: [GitHub Issues](https://github.com/yourusername/agentic-inventory-service/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/yourusername/agentic-inventory-service/discussions)
+- **Email**: hemant.sudarshan@example.com
+
+---
+
+**⭐ Star this repo if you find it helpful!**
+
+Built with ❤️ using AI, FastAPI, and Python
