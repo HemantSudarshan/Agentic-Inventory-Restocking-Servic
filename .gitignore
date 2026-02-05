@@ -1,35 +1,23 @@
-# Environment variables (NEVER commit API keys!)
+# Environment variables (NEVER commit secrets!)
 .env
 
-# Python
+# Python cache
 __pycache__/
 *.py[cod]
 *$py.class
 *.so
 .Python
-build/
-develop-eggs/
-dist/
-downloads/
-eggs/
-.eggs/
-lib/
-lib64/
-parts/
-sdist/
-var/
 wheels/
 *.egg-info/
 .installed.cfg
 *.egg
 
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
+# Virtual environment
+venv/
+ENV/
+env/
 
-# IDEs
+# IDE
 .vscode/
 .idea/
 *.swp
@@ -42,10 +30,25 @@ Thumbs.db
 
 # Logs
 *.log
+logs/*.log
 
-# Antigravity artifacts (keep Context Logs but exclude brain artifacts)
+# Database
+*.db
+*.sqlite
+*.sqlite3
+data/inventory.db
+
+# Antigravity brain (Keep Context Logs but exclude brain artifacts)
 .gemini/
+
+# Research and planning folders (local only)
+Evaluated Research/
+Final Evlation/
+Problem Statemen and Imp docs/
 
 # Temporary files
 *.tmp
 *.bak
+.pytest_cache/
+.coverage
+htmlcov/
