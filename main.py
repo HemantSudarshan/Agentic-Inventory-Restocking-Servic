@@ -1,19 +1,36 @@
-"""Main FastAPI application with LangGraph workflow orchestration."""
+"""Main FastAPI application with LangGraph workflow orchestration.
+
+Phase 2 Enhancements:
+- Rate limiting
+- Slack notifications
+- Batch processing
+- Database persistence
+- Dashboard UI
+- Webhook callbacks
+"""
 
 import os
 import asyncio
-from fastapi import FastAPI, HTTPException, Security, Depends
+from typing import Dict, Any, List, Optional
+from contextlib import asynccontextmanager
+
+from fastapi import FastAPI, HTTPException, Security, Depends, Request
 from fastapi.security.api_key import APIKeyHeader
-from fastapi.responses import PlainTextResponse
+from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse
+from fastapi.staticfiles import StaticFiles
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from dotenv import load_dotenv
-from typing import Dict, Any
+from slowapi import _rate_limit_exceeded_handler
+from slowapi.errors import RateLimitExceeded
 
 from models.schemas import (
     InventoryRequest, 
     InventoryResponse, 
     DebugResponse,
-    ErrorResponse
+    ErrorResponse,
+    BatchInventoryRequest,
+    BatchInventoryResponse,
+    OrderListResponse
 )
 from agents.data_loader import load_data
 from agents.safety_calculator import process_inventory_data
@@ -21,6 +38,17 @@ from agents.reasoning_agent import ReasoningAgent
 from agents.action_agent import generate_action
 from utils.logging import setup_logging, get_logger
 from utils import metrics
+from utils.rate_limiter import limiter, rate_limit_exceeded_handler, RATE_LIMITS
+from utils.notifications import send_slack_notification, send_webhook_callback
+from utils.database import (
+    init_database, 
+    save_order, 
+    get_orders, 
+    get_order_by_id,
+    update_order_status,
+    log_audit_event,
+    get_dashboard_stats
+)
 
 # Load environment variables
 load_dotenv()
@@ -29,12 +57,37 @@ load_dotenv()
 setup_logging()
 logger = get_logger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Application lifespan - startup and shutdown events."""
+    # Startup
+    logger.info("Initializing database...")
+    await init_database()
+    logger.info("Application startup complete")
+    yield
+    # Shutdown
+    logger.info("Application shutdown")
+
+
 # Initialize FastAPI app
 app = FastAPI(
     title="Agentic Inventory Restocking Service",
     description="AI-powered inventory management with automatic restocking decisions",
-    version="1.0.0"
+    version="2.0.0",
+    lifespan=lifespan
 )
+
+# Add rate limiter
+app.state.limiter = limiter
+app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
+
+# Configurable business logic thresholds
+CONFIDENCE_THRESHOLD = float(os.getenv("AUTO_EXECUTE_THRESHOLD", "0.6"))
+logger.info(f"Auto-execute confidence threshold: {CONFIDENCE_THRESHOLD}")
+
+# Mount static files for dashboard
+app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Initialize reasoning agent (singleton)
 reasoning_agent = ReasoningAgent()
@@ -43,17 +96,47 @@ reasoning_agent = ReasoningAgent()
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
 
+
 async def get_api_key(api_key_header: str = Security(api_key_header)):
-    """Validate API Key for endpoint access."""
+    """
+    Validate API Key for endpoint access.
+    
+    SECURITY: Fails closed by default. Set DEV_MODE=true to disable auth in development.
+    """
     expected_key = os.getenv("API_KEY")
+    dev_mode = os.getenv("DEV_MODE", "false").lower() == "true"
+    
     if not expected_key:
-        # If no API_KEY set in env, allow access (dev mode)
-        logger.warning("No API_KEY set in environment - running in INSECURE mode")
-        return None
+        if dev_mode:
+            # Explicitly enabled dev mode - allow access with warning
+            logger.warning("⚠️  DEV_MODE enabled - API security DISABLED")
+            return None
+        else:
+            # Production default: fail closed
+            logger.error("Server misconfigured: API_KEY not set and DEV_MODE not enabled")
+            raise HTTPException(
+                status_code=500,
+                detail="Server configuration error: Authentication not configured"
+            )
+    
     if api_key_header != expected_key:
+        logger.warning(f"Invalid API key attempt")
         raise HTTPException(status_code=403, detail="Invalid or missing API key")
+    
     return api_key_header
 
+
+def get_client_ip(request: Request) -> str:
+    """Get client IP address from request."""
+    forwarded = request.headers.get("X-Forwarded-For")
+    if forwarded:
+        return forwarded.split(",")[0].strip()
+    return request.client.host if request.client else "unknown"
+
+
+# ============================================================
+# Core Endpoints
+# ============================================================
 
 @app.get("/")
 async def root():
@@ -61,12 +144,23 @@ async def root():
     return {
         "service": "Agentic Inventory Restocking Service",
         "status": "running",
-        "version": "1.0.0"
+        "version": "2.0.0"
     }
 
 
+@app.get("/dashboard")
+async def dashboard():
+    """Serve the dashboard UI."""
+    return FileResponse("static/dashboard.html")
+
+
 @app.post("/inventory-trigger", response_model=InventoryResponse)
-async def inventory_trigger(request: InventoryRequest, api_key: str = Depends(get_api_key)):
+@limiter.limit(RATE_LIMITS["inventory_trigger"])
+async def inventory_trigger(
+    request: Request,
+    inventory_request: InventoryRequest, 
+    api_key: str = Depends(get_api_key)
+):
     """
     Main endpoint to trigger inventory analysis and restocking decisions.
     
@@ -81,21 +175,33 @@ async def inventory_trigger(request: InventoryRequest, api_key: str = Depends(ge
     4. AI analyzes and recommends action
     5. Generate purchase order or transfer
     6. Route based on confidence (auto-execute or review)
+    7. Save to database & send notifications
     """
     try:
         # Track request
         metrics.inventory_trigger_total.labels(
-            mode=request.mode, 
+            mode=inventory_request.mode, 
             status="started"
         ).inc()
         
+        client_ip = get_client_ip(request)
+        
         logger.info("Processing inventory trigger", 
-                   product_id=request.product_id, 
-                   mode=request.mode)
+                   product_id=inventory_request.product_id, 
+                   mode=inventory_request.mode,
+                   client_ip=client_ip)
+        
+        # Log audit event
+        await log_audit_event(
+            event_type="inventory_trigger",
+            product_id=inventory_request.product_id,
+            details=f"mode={inventory_request.mode}",
+            user_ip=client_ip
+        )
         
         # Step 1: Load data (run sync operation in thread pool to avoid blocking)
         loop = asyncio.get_running_loop()
-        data = await loop.run_in_executor(None, load_data, request)
+        data = await loop.run_in_executor(None, load_data, inventory_request)
         logger.info("Data loaded", product_id=data["product_id"])
         
         # Step 2: Calculate safety parameters
@@ -166,8 +272,7 @@ async def inventory_trigger(request: InventoryRequest, api_key: str = Depends(ge
         order = generate_action(data["product_id"], recommendation)
         
         # Step 6: Route based on confidence
-        confidence_threshold = 0.6
-        if recommendation["confidence"] >= confidence_threshold:
+        if recommendation["confidence"] >= CONFIDENCE_THRESHOLD:
             status = "executed"
             metrics.orders_generated_total.labels(
                 type=order.type,
@@ -180,9 +285,39 @@ async def inventory_trigger(request: InventoryRequest, api_key: str = Depends(ge
                 execution_status="pending_review"
             ).inc()
         
+        # Step 7: Save to database
+        order_data = {
+            "order_id": order.id,
+            "product_id": data["product_id"],
+            "action": recommendation["action"],
+            "quantity": recommendation["quantity"],
+            "confidence": recommendation["confidence"],
+            "status": status,
+            "llm_provider": llm_provider,
+            "reasoning": recommendation["reasoning"],
+            "safety_stock": safety_stock,
+            "reorder_point": reorder_point,
+            "current_stock": current_stock,
+            "shortage": shortage,
+            "estimated_cost": order.cost
+        }
+        await save_order(order_data)
+        
+        # Step 8: Send notifications
+        if recommendation["confidence"] < CONFIDENCE_THRESHOLD:
+            # Send Slack notification for low-confidence orders
+            await send_slack_notification(order_data)
+        
+        # Send webhook callback if provided
+        if inventory_request.callback_url:
+            asyncio.create_task(send_webhook_callback(
+                inventory_request.callback_url,
+                order_data
+            ))
+        
         # Track success
         metrics.inventory_trigger_total.labels(
-            mode=request.mode,
+            mode=inventory_request.mode,
             status="success"
         ).inc()
         
@@ -202,26 +337,185 @@ async def inventory_trigger(request: InventoryRequest, api_key: str = Depends(ge
     except Exception as e:
         # Track failure
         metrics.inventory_trigger_total.labels(
-            mode=request.mode,
+            mode=inventory_request.mode,
             status="error"
         ).inc()
         
         logger.error("Inventory trigger failed",
                     error=str(e),
-                    product_id=request.product_id)
+                    product_id=inventory_request.product_id)
         
         raise HTTPException(
             status_code=500,
             detail=ErrorResponse(
                 error_code="PROCESSING_ERROR",
                 message=str(e),
-                details={"product_id": request.product_id}
+                details={"product_id": inventory_request.product_id}
             ).model_dump()
         )
 
 
+# ============================================================
+# Batch Processing
+# ============================================================
+
+@app.post("/inventory-trigger-batch", response_model=BatchInventoryResponse)
+@limiter.limit(RATE_LIMITS["batch"])
+async def inventory_trigger_batch(
+    request: Request,
+    batch_request: BatchInventoryRequest,
+    api_key: str = Depends(get_api_key)
+):
+    """
+    Batch processing endpoint - analyze multiple products at once.
+    
+    Processes products in parallel for efficiency.
+    Returns results for all products, including any errors.
+    """
+    try:
+        logger.info(f"Batch processing {len(batch_request.products)} products")
+        
+        async def process_single(product_id: str) -> Dict[str, Any]:
+            """Process a single product and return result."""
+            try:
+                req = InventoryRequest(
+                    product_id=product_id,
+                    mode=batch_request.mode
+                )
+                result = await inventory_trigger(request, req, api_key)
+                return {
+                    "product_id": product_id,
+                    "success": True,
+                    "result": result.model_dump()
+                }
+            except Exception as e:
+                return {
+                    "product_id": product_id,
+                    "success": False,
+                    "error": str(e)
+                }
+        
+        # Process all products in parallel
+        tasks = [process_single(pid) for pid in batch_request.products]
+        results = await asyncio.gather(*tasks)
+        
+        successful = sum(1 for r in results if r["success"])
+        
+        return BatchInventoryResponse(
+            total=len(batch_request.products),
+            successful=successful,
+            failed=len(batch_request.products) - successful,
+            results=results
+        )
+        
+    except Exception as e:
+        logger.error(f"Batch processing failed: {str(e)}")
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+# ============================================================
+# Database & Orders Endpoints
+# ============================================================
+
+@app.get("/orders", response_model=OrderListResponse)
+@limiter.limit(RATE_LIMITS["orders"])
+async def list_orders(
+    request: Request,
+    limit: int = 50,
+    status: Optional[str] = None,
+    product_id: Optional[str] = None,
+    api_key: str = Depends(get_api_key)
+):
+    """Get list of orders with optional filtering."""
+    orders = await get_orders(limit=limit, status=status, product_id=product_id)
+    return OrderListResponse(
+        orders=orders,
+        total=len(orders)
+    )
+
+
+@app.get("/orders/{order_id}")
+@limiter.limit(RATE_LIMITS["orders"])
+async def get_order(
+    request: Request,
+    order_id: str,
+    api_key: str = Depends(get_api_key)
+):
+    """Get a single order by ID."""
+    order = await get_order_by_id(order_id)
+    if not order:
+        raise HTTPException(status_code=404, detail="Order not found")
+    return order
+
+
+@app.post("/orders/{order_id}/approve")
+async def approve_order(
+    request: Request,
+    order_id: str,
+    api_key: str = Depends(get_api_key)
+):
+    """Approve a pending order."""
+    client_ip = get_client_ip(request)
+    success = await update_order_status(order_id, "approved", approved_by=client_ip)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to approve order")
+    
+    await log_audit_event(
+        event_type="order_approved",
+        order_id=order_id,
+        user_ip=client_ip
+    )
+    
+    return {"status": "approved", "order_id": order_id}
+
+
+@app.post("/orders/{order_id}/reject")
+async def reject_order(
+    request: Request,
+    order_id: str,
+    api_key: str = Depends(get_api_key)
+):
+    """Reject a pending order."""
+    client_ip = get_client_ip(request)
+    success = await update_order_status(order_id, "rejected", approved_by=client_ip)
+    if not success:
+        raise HTTPException(status_code=500, detail="Failed to reject order")
+    
+    await log_audit_event(
+        event_type="order_rejected",
+        order_id=order_id,
+        user_ip=client_ip
+    )
+    
+    return {"status": "rejected", "order_id": order_id}
+
+
+# ============================================================
+# Dashboard Stats
+# ============================================================
+
+@app.get("/dashboard/stats")
+@limiter.limit(RATE_LIMITS["orders"])
+async def dashboard_stats(
+    request: Request,
+    api_key: str = Depends(get_api_key)
+):
+    """Get dashboard statistics."""
+    return await get_dashboard_stats()
+
+
+# ============================================================
+# Debug & Metrics
+# ============================================================
+
 @app.get("/debug/{product_id}", response_model=DebugResponse)
-async def debug_product(product_id: str, mode: str = "mock", api_key: str = Depends(get_api_key)):
+@limiter.limit(RATE_LIMITS["debug"])
+async def debug_product(
+    request: Request,
+    product_id: str, 
+    mode: str = "mock", 
+    api_key: str = Depends(get_api_key)
+):
     """
     Debug endpoint to view calculations without triggering orders.
     
@@ -229,9 +523,9 @@ async def debug_product(product_id: str, mode: str = "mock", api_key: str = Depe
     """
     try:
         # Load data (run in thread pool)
-        request = InventoryRequest(product_id=product_id, mode=mode)
+        inv_request = InventoryRequest(product_id=product_id, mode=mode)
         loop = asyncio.get_running_loop()
-        data = await loop.run_in_executor(None, load_data, request)
+        data = await loop.run_in_executor(None, load_data, inv_request)
         
         # Calculate safety parameters
         avg_demand, std_dev, safety_stock, reorder_point = process_inventory_data(

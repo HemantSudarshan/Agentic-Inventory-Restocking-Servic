@@ -104,10 +104,20 @@ class ReasoningAgent:
         self.llm_provider = LLMProvider()
     
     def _parse_json_response(self, content: str) -> Dict[str, Any]:
-        """Extract and parse JSON from LLM response (robust against formatting)."""
+        """
+        Extract and parse JSON from LLM response with error recovery.
+        
+        Handles common LLM output issues:
+        - Markdown code blocks
+        - Text before/after JSON
+        - Trailing commas
+        - Single quotes instead of double quotes
+        """
+        import re
+        
         # Remove markdown code blocks (case-insensitive)
         content = content.strip()
-        content = content.replace("```json", "").replace("```JSON", "").replace("```", "")
+        content = re.sub(r'```(?:json|JSON)?', '', content)
         content = content.strip()
         
         # Find JSON object (handles text before/after JSON)
@@ -118,7 +128,39 @@ class ReasoningAgent:
             raise ValueError(f"No JSON object found in response: {content[:100]}")
         
         json_str = content[start:end]
-        return json.loads(json_str)
+        
+        try:
+            # First attempt: strict parsing
+            return json.loads(json_str)
+        except json.JSONDecodeError as e:
+            logger.debug(f"Initial JSON parse failed, attempting recovery: {str(e)}")
+            
+            # Attempt 1: Fix single quotes
+            try:
+                fixed = json_str.replace("'", '"')
+                return json.loads(fixed)
+            except json.JSONDecodeError:
+                pass
+            
+            # Attempt 2: Remove trailing commas
+            try:
+                fixed = re.sub(r',(\s*[}\]])', r'\1', json_str)
+                return json.loads(fixed)
+            except json.JSONDecodeError:
+                pass
+            
+            # Attempt 3: Both fixes combined
+            try:
+                fixed = json_str.replace("'", '"')
+                fixed = re.sub(r',(\s*[}\]])', r'\1', fixed)
+                return json.loads(fixed)
+            except json.JSONDecodeError:
+                # All recovery attempts failed
+                raise ValueError(
+                    f"Could not parse JSON after multiple recovery attempts. "
+                    f"Original error: {str(e)}. Content: {json_str[:200]}"
+                )
+
     
     async def _call_llm(self, llm, prompt: str, llm_name: str) -> Optional[Dict[str, Any]]:
         """
@@ -137,6 +179,18 @@ class ReasoningAgent:
             logger.warning(f"LLM call failed ({llm_name}): {str(e)}", exc_info=True)
             return None
     
+    
+    def _sanitize_product_id(self, product_id: str) -> str:
+        """
+        Sanitize product ID to prevent prompt injection.
+        
+        Allows only alphanumeric characters, underscores, and dashes.
+        Truncates to reasonable length.
+        """
+        import re
+        sanitized = re.sub(r'[^A-Za-z0-9_-]', '', product_id)
+        return sanitized[:100]  # Max 100 chars
+    
     @retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=1, max=5))
     async def analyze(self, context: Dict[str, Any]) -> Dict[str, Any]:
         """
@@ -154,7 +208,12 @@ class ReasoningAgent:
             ValueError: If no LLM providers configured
             RuntimeError: If all LLM providers fail
         """
-        prompt = RESTOCK_PROMPT.format(**context)
+        # Sanitize product_id to prevent prompt injection
+        safe_context = context.copy()
+        if "product_id" in safe_context:
+            safe_context["product_id"] = self._sanitize_product_id(safe_context["product_id"])
+        
+        prompt = RESTOCK_PROMPT.format(**safe_context)
         llm_chain = self.llm_provider.get_llm_chain()
         
         if not llm_chain:

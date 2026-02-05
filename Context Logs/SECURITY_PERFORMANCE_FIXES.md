@@ -1,13 +1,35 @@
-# Security & Performance Improvements - 2026-02-05
+# Security & Performance Fixes - 2026-02-05
+
+> **⚠️ SUPERSEDED**: This document describes the initial security implementation (fail-open).  
+> **See**: [SECURITY_HARDENING_2026-02-06.md](./SECURITY_HARDENING_2026-02-06.md) for production-ready fail-closed security.
+
+**Date**: 2026-02-05 19:20:00 IST  
+**Status**: ✅ COMPLETE (Later enhanced Feb 6)  
+**Priority**: HIGH
 
 ## ✅ Applied Fixes
 
 ### 1. **Security Enhancements** 🔒
 
 #### API Key Authentication
-- **Added**: `X-API-Key` header requirement for all endpoints
-- **Implementation**: FastAPI Security dependency with `get_api_key()` validator
-- **Dev Mode**: If `API_KEY` not set in `.env`, runs in INSECURE mode with warning
+**File**: `main.py`  
+**Lines**: 42-55
+
+> **📝 NOTE**: This initial implementation used fail-open (allowed access if no API_KEY).  
+> **Updated Feb 6**: Now uses fail-closed with explicit `DEV_MODE=true` flag.
+
+Added `X-API-Key` header validation for protected endpoints.
+
+```python
+async def get_api_key(api_key_header: str = Security(api_key_header)):
+    """Validate API Key for endpoint access."""
+    expected_key = os.getenv("API_KEY")
+    if not expected_key:
+        # If no API_KEY set in env, allow access (dev mode)
+        # ⚠️ LATER CHANGED: Now requires DEV_MODE=true (fail-closed)
+        logger.warning("No API_KEY set in environment - running in INSECURE mode")
+        return None
+```
 - **Production**: Requires valid API key in header to access endpoints
 
 **Usage**:

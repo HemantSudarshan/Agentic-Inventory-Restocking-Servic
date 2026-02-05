@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Inventory Agent Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <style>
+        @keyframes pulse-slow {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.7; }
+        }
+        .animate-pulse-slow { animation: pulse-slow 2s infinite; }
+        .glass { background: rgba(255,255,255,0.1); backdrop-filter: blur(10px); }
+    </style>
+</head>
+<body class="bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 min-h-screen text-white">
+    <!-- Header -->
+    <header class="border-b border-white/10 glass sticky top-0 z-50">
+        <div class="max-w-7xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center">
+                    <i data-lucide="bot" class="w-6 h-6"></i>
+                </div>
+                <div>
+                    <h1 class="text-xl font-bold">Inventory Agent</h1>
+                    <p class="text-xs text-gray-400">AI-Powered Restocking</p>
+                </div>
+            </div>
+            <div class="flex items-center gap-4">
+                <div id="status-indicator" class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/20 border border-emerald-500/50">
+                    <span class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse-slow"></span>
+                    <span class="text-sm text-emerald-400">System Online</span>
+                </div>
+                <button onclick="refreshData()" class="p-2 rounded-lg hover:bg-white/10 transition">
+                    <i data-lucide="refresh-cw" class="w-5 h-5"></i>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <main class="max-w-7xl mx-auto px-4 py-8">
+        <!-- Stats Cards -->
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 mb-8">
+            <div class="glass rounded-2xl p-6 border border-white/10">
+                <div class="flex items-center justify-between mb-4">
+                    <i data-lucide="package" class="w-8 h-8 text-purple-400"></i>
+                    <span class="text-xs px-2 py-1 rounded-full bg-purple-500/20 text-purple-400">Total</span>
+                </div>
+                <p id="stat-total" class="text-3xl font-bold">0</p>
+                <p class="text-sm text-gray-400 mt-1">Orders Generated</p>
+            </div>
+            
+            <div class="glass rounded-2xl p-6 border border-white/10">
+                <div class="flex items-center justify-between mb-4">
+                    <i data-lucide="check-circle" class="w-8 h-8 text-emerald-400"></i>
+                    <span class="text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400">Executed</span>
+                </div>
+                <p id="stat-executed" class="text-3xl font-bold">0</p>
+                <p class="text-sm text-gray-400 mt-1">Auto-Executed</p>
+            </div>
+            
+            <div class="glass rounded-2xl p-6 border border-white/10">
+                <div class="flex items-center justify-between mb-4">
+                    <i data-lucide="clock" class="w-8 h-8 text-amber-400"></i>
+                    <span class="text-xs px-2 py-1 rounded-full bg-amber-500/20 text-amber-400">Pending</span>
+                </div>
+                <p id="stat-pending" class="text-3xl font-bold">0</p>
+                <p class="text-sm text-gray-400 mt-1">Awaiting Review</p>
+            </div>
+            
+            <div class="glass rounded-2xl p-6 border border-white/10">
+                <div class="flex items-center justify-between mb-4">
+                    <i data-lucide="brain" class="w-8 h-8 text-pink-400"></i>
+                    <span class="text-xs px-2 py-1 rounded-full bg-pink-500/20 text-pink-400">Avg</span>
+                </div>
+                <p id="stat-confidence" class="text-3xl font-bold">0%</p>
+                <p class="text-sm text-gray-400 mt-1">AI Confidence</p>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            <!-- Recent Orders -->
+            <div class="lg:col-span-2 glass rounded-2xl border border-white/10 overflow-hidden">
+                <div class="px-6 py-4 border-b border-white/10 flex items-center justify-between">
+                    <h2 class="font-semibold flex items-center gap-2">
+                        <i data-lucide="list" class="w-5 h-5 text-purple-400"></i>
+                        Recent Orders
+                    </h2>
+                    <span class="text-xs text-gray-400">Last 10 orders</span>
+                </div>
+                <div class="overflow-x-auto">
+                    <table class="w-full">
+                        <thead class="bg-white/5">
+                            <tr class="text-left text-xs text-gray-400 uppercase">
+                                <th class="px-6 py-3">Order ID</th>
+                                <th class="px-6 py-3">Product</th>
+                                <th class="px-6 py-3">Quantity</th>
+                                <th class="px-6 py-3">Confidence</th>
+                                <th class="px-6 py-3">Status</th>
+                                <th class="px-6 py-3">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody id="orders-table" class="divide-y divide-white/5">
+                            <tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">Loading orders...</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Quick Actions & Products -->
+            <div class="space-y-6">
+                <!-- Trigger Order -->
+                <div class="glass rounded-2xl border border-white/10 p-6">
+                    <h3 class="font-semibold mb-4 flex items-center gap-2">
+                        <i data-lucide="zap" class="w-5 h-5 text-amber-400"></i>
+                        Quick Trigger
+                    </h3>
+                    <div class="space-y-4">
+                        <select id="product-select" class="w-full bg-white/10 border border-white/20 rounded-lg px-4 py-2.5 focus:outline-none focus:border-purple-500">
+                            <option value="STEEL_SHEETS">STEEL_SHEETS</option>
+                            <option value="ALUMINUM_BARS">ALUMINUM_BARS</option>
+                            <option value="COPPER_WIRE">COPPER_WIRE</option>
+                            <option value="PLASTIC_PELLETS">PLASTIC_PELLETS</option>
+                            <option value="RUBBER_SEALS">RUBBER_SEALS</option>
+                            <option value="GLASS_PANELS">GLASS_PANELS</option>
+                        </select>
+                        <button onclick="triggerOrder()" class="w-full py-2.5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 font-medium hover:opacity-90 transition flex items-center justify-center gap-2">
+                            <i data-lucide="play" class="w-4 h-4"></i>
+                            Run Analysis
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Top Products -->
+                <div class="glass rounded-2xl border border-white/10 p-6">
+                    <h3 class="font-semibold mb-4 flex items-center gap-2">
+                        <i data-lucide="trending-up" class="w-5 h-5 text-emerald-400"></i>
+                        Top Products
+                    </h3>
+                    <div id="top-products" class="space-y-3">
+                        <div class="text-sm text-gray-500">Loading...</div>
+                    </div>
+                </div>
+
+                <!-- System Health -->
+                <div class="glass rounded-2xl border border-white/10 p-6">
+                    <h3 class="font-semibold mb-4 flex items-center gap-2">
+                        <i data-lucide="activity" class="w-5 h-5 text-cyan-400"></i>
+                        System Health
+                    </h3>
+                    <div class="space-y-3">
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-400">API</span>
+                            <span id="health-api" class="text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400">Checking...</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-400">LLM Provider</span>
+                            <span id="health-llm" class="text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400">Gemini</span>
+                        </div>
+                        <div class="flex items-center justify-between">
+                            <span class="text-sm text-gray-400">Database</span>
+                            <span id="health-db" class="text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400">SQLite</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- Toast Notification -->
+    <div id="toast" class="fixed bottom-4 right-4 px-6 py-3 rounded-xl glass border border-white/20 transform translate-y-20 opacity-0 transition-all duration-300">
+        <p id="toast-message" class="text-sm"></p>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        const API_BASE = '';
+        const API_KEY = 'dev-inventory-agent-2026';  // Will be configurable
+
+        async function fetchWithAuth(url, options = {}) {
+            const headers = {
+                'X-API-Key': API_KEY,
+                'Content-Type': 'application/json',
+                ...options.headers
+            };
+            const response = await fetch(url, { ...options, headers });
+            if (!response.ok) throw new Error(`HTTP ${response.status}`);
+            return response.json();
+        }
+
+        function showToast(message, type = 'info') {
+            const toast = document.getElementById('toast');
+            const msgEl = document.getElementById('toast-message');
+            msgEl.textContent = message;
+            toast.className = toast.className.replace('translate-y-20 opacity-0', 'translate-y-0 opacity-100');
+            if (type === 'success') toast.classList.add('border-emerald-500');
+            else if (type === 'error') toast.classList.add('border-red-500');
+            setTimeout(() => {
+                toast.className = toast.className.replace('translate-y-0 opacity-100', 'translate-y-20 opacity-0');
+            }, 3000);
+        }
+
+        async function refreshData() {
+            try {
+                // Check health
+                const health = await fetch('/').then(r => r.json());
+                document.getElementById('health-api').textContent = health.status === 'running' ? 'Online' : 'Offline';
+                document.getElementById('health-api').className = 'text-xs px-2 py-1 rounded-full bg-emerald-500/20 text-emerald-400';
+
+                // Get dashboard stats
+                try {
+                    const stats = await fetchWithAuth('/dashboard/stats');
+                    document.getElementById('stat-total').textContent = stats.total_orders || 0;
+                    document.getElementById('stat-executed').textContent = stats.status_breakdown?.executed || 0;
+                    document.getElementById('stat-pending').textContent = stats.status_breakdown?.pending || 0;
+                    document.getElementById('stat-confidence').textContent = 
+                        `${Math.round((stats.average_confidence || 0) * 100)}%`;
+
+                    // Update orders table
+                    const ordersTable = document.getElementById('orders-table');
+                    if (stats.recent_orders?.length > 0) {
+                        ordersTable.innerHTML = stats.recent_orders.map(order => `
+                            <tr class="hover:bg-white/5">
+                                <td class="px-6 py-3 text-sm font-mono">${order.order_id?.slice(0, 20) || 'N/A'}...</td>
+                                <td class="px-6 py-3 text-sm">${order.product_id}</td>
+                                <td class="px-6 py-3 text-sm">${order.quantity?.toLocaleString() || 0}</td>
+                                <td class="px-6 py-3">
+                                    <div class="flex items-center gap-2">
+                                        <div class="w-16 h-2 rounded-full bg-white/10 overflow-hidden">
+                                            <div class="h-full rounded-full ${order.confidence >= 0.8 ? 'bg-emerald-500' : order.confidence >= 0.6 ? 'bg-amber-500' : 'bg-red-500'}" style="width: ${(order.confidence || 0) * 100}%"></div>
+                                        </div>
+                                        <span class="text-xs">${Math.round((order.confidence || 0) * 100)}%</span>
+                                    </div>
+                                </td>
+                                <td class="px-6 py-3">
+                                    <span class="text-xs px-2 py-1 rounded-full ${order.status === 'executed' ? 'bg-emerald-500/20 text-emerald-400' : order.status === 'pending' ? 'bg-amber-500/20 text-amber-400' : 'bg-gray-500/20 text-gray-400'}">${order.status}</span>
+                                </td>
+                                <td class="px-6 py-3">
+                                    ${order.status === 'pending' ? `
+                                        <button onclick="approveOrder('${order.order_id}')" class="text-xs px-2 py-1 rounded bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 mr-1">Approve</button>
+                                        <button onclick="rejectOrder('${order.order_id}')" class="text-xs px-2 py-1 rounded bg-red-500/20 text-red-400 hover:bg-red-500/30">Reject</button>
+                                    ` : '-'}
+                                </td>
+                            </tr>
+                        `).join('');
+                    } else {
+                        ordersTable.innerHTML = '<tr><td colspan="6" class="px-6 py-8 text-center text-gray-500">No orders yet. Trigger an analysis!</td></tr>';
+                    }
+
+                    // Update top products
+                    const topProducts = document.getElementById('top-products');
+                    if (stats.top_products?.length > 0) {
+                        topProducts.innerHTML = stats.top_products.map(p => `
+                            <div class="flex items-center justify-between p-2 rounded-lg bg-white/5">
+                                <span class="text-sm">${p.product_id}</span>
+                                <span class="text-xs text-gray-400">${p.total_orders} orders</span>
+                            </div>
+                        `).join('');
+                    } else {
+                        topProducts.innerHTML = '<div class="text-sm text-gray-500">No data yet</div>';
+                    }
+                } catch (e) {
+                    console.log('Dashboard stats not available:', e);
+                }
+
+                lucide.createIcons();
+            } catch (error) {
+                console.error('Failed to refresh:', error);
+                document.getElementById('health-api').textContent = 'Offline';
+                document.getElementById('health-api').className = 'text-xs px-2 py-1 rounded-full bg-red-500/20 text-red-400';
+            }
+        }
+
+        async function triggerOrder() {
+            const product = document.getElementById('product-select').value;
+            showToast(`Analyzing ${product}...`, 'info');
+            
+            try {
+                const result = await fetchWithAuth('/inventory-trigger', {
+                    method: 'POST',
+                    body: JSON.stringify({ product_id: product, mode: 'mock' })
+                });
+                showToast(`Order generated: ${result.quantity} units`, 'success');
+                refreshData();
+            } catch (error) {
+                showToast('Failed to trigger order', 'error');
+            }
+        }
+
+        async function approveOrder(orderId) {
+            try {
+                await fetchWithAuth(`/orders/${orderId}/approve`, { method: 'POST' });
+                showToast('Order approved!', 'success');
+                refreshData();
+            } catch (error) {
+                showToast('Failed to approve', 'error');
+            }
+        }
+
+        async function rejectOrder(orderId) {
+            try {
+                await fetchWithAuth(`/orders/${orderId}/reject`, { method: 'POST' });
+                showToast('Order rejected', 'info');
+                refreshData();
+            } catch (error) {
+                showToast('Failed to reject', 'error');
+            }
+        }
+
+        // Initial load and auto-refresh
+        refreshData();
+        setInterval(refreshData, 30000);  // Refresh every 30 seconds
+    </script>
+</body>
+</html>

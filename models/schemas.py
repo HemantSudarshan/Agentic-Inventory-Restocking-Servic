@@ -18,6 +18,9 @@ class InventoryRequest(BaseModel):
     service_level: Optional[float] = Field(default=0.95, ge=0.5, le=0.99, description="Target service level (0.5-0.99)")
     unit_price: Optional[float] = Field(None, ge=0, description="Unit price for cost calculations")
     
+    # Phase 2: Webhook callback
+    callback_url: Optional[str] = Field(None, description="URL to POST results to after processing")
+    
     class Config:
         json_schema_extra = {
             "examples": [
@@ -32,7 +35,8 @@ class InventoryRequest(BaseModel):
                     "demand_history": [100, 120, 110, 130, 125, 115, 140],
                     "lead_time_days": 7,
                     "service_level": 0.95,
-                    "unit_price": 500
+                    "unit_price": 500,
+                    "callback_url": "https://your-server.com/webhook"
                 }
             ]
         }
@@ -50,9 +54,11 @@ class SafetyParams(BaseModel):
 class OrderAction(BaseModel):
     """Purchase order or transfer action."""
     
+    id: str = Field(..., description="Order/transfer ID")
     po_number: str = Field(..., description="Order/transfer number")
     type: Literal["purchase_order", "transfer"] = Field(..., description="Action type")
     items: List[Dict[str, Any]] = Field(..., description="Order line items")
+    cost: float = Field(default=0, description="Estimated cost")
     created_at: datetime = Field(default_factory=datetime.now, description="Order creation timestamp")
 
 
@@ -89,3 +95,39 @@ class ErrorResponse(BaseModel):
     error_code: str = Field(..., description="Error code")
     message: str = Field(..., description="Error message")
     details: Optional[Dict[str, Any]] = Field(None, description="Additional error details")
+
+
+# ============================================================
+# Phase 2: Batch Processing Models
+# ============================================================
+
+class BatchInventoryRequest(BaseModel):
+    """Batch request for processing multiple products."""
+    
+    products: List[str] = Field(..., min_length=1, max_length=20, description="List of product IDs to process")
+    mode: Literal["mock", "input"] = Field(default="mock", description="Data source mode")
+    
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "products": ["STEEL_SHEETS", "ALUMINUM_BARS", "COPPER_WIRE"],
+                "mode": "mock"
+            }
+        }
+
+
+class BatchInventoryResponse(BaseModel):
+    """Response from batch processing endpoint."""
+    
+    total: int = Field(..., description="Total products processed")
+    successful: int = Field(..., description="Successfully processed count")
+    failed: int = Field(..., description="Failed processing count")
+    results: List[Dict[str, Any]] = Field(..., description="Individual results for each product")
+
+
+class OrderListResponse(BaseModel):
+    """Response for order list endpoint."""
+    
+    orders: List[Dict[str, Any]] = Field(..., description="List of orders")
+    total: int = Field(..., description="Total orders returned")
+
