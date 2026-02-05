@@ -66,7 +66,8 @@ class TestEOQ:
     def test_eoq_calculation(self):
         """Test EOQ calculation."""
         eoq = calculate_eoq(annual_demand=36500, order_cost=50, holding_cost=5)
-        assert 600 < eoq < 610  # Should be ~606 units
+        # EOQ = √((2 × 36500 × 50) / 5) = √730000 ≈ 854.4
+        assert 850 < eoq < 860  # Should be ~854 units
     
     def test_eoq_validation(self):
         """Test input validation."""
