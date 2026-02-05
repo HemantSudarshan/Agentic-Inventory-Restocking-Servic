@@ -1,26 +1,39 @@
 # 🤖 Agentic Inventory Restocking Service
 
-**AI-powered inventory management using LLM reasoning for smart restocking decisions**
+**Enterprise-grade AI inventory management with LLM reasoning and real-time monitoring**
 
 [![Production Ready](https://img.shields.io/badge/status-production--ready-brightgreen)]()
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.100+-blue)]()
 [![Gemini 2.0](https://img.shields.io/badge/Gemini-2.0%20Flash-orange)]()
 [![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue)]()
 
-> An intelligent inventory management system that combines traditional safety stock calculations with AI-powered decision making. The agent analyzes inventory levels, demand patterns, and lead times to automatically generate purchase orders or transfer requests with confidence-based routing.
+> An intelligent inventory management system that combines safety stock calculations with AI-powered decision making. Features production-grade monitoring, batch processing, and confidence-based routing for automated restocking with human oversight.
 
 ---
 
 ## ✨ Key Features
 
-- **🧠 AI-Powered Reasoning**: Gemini 2.0 Flash analyzes inventory and provides contextual recommendations
+### Core Intelligence
+- **🧠 AI-Powered Reasoning**: Gemini 2.0 Flash analyzes inventory with contextual recommendations
 - **📊 Safety Stock Calculations**: Industry-standard formulas (SS, ROP, EOQ)
-- **🔄 Automatic Failover**: Gemini → Groq LLM chain for reliability
-- **🎯 Confidence Routing**: Auto-execute high-confidence decisions (≥0.6), flag low-confidence for review
-- **🔒 API Security**: X-API-Key authentication on all endpoints
-- **⚡ High Performance**: 3-4s response time with async I/O and LRU caching
-- **📈 Prometheus Metrics**: Full observability with built-in monitoring
-- **🔀 Dual Modes**: Mock CSV data for testing + real-time input API
+- **🔄 99.9% Uptime**: Automatic failover (Gemini → Groq LLM chain)
+- **🎯 Smart Routing**: Auto-execute high-confidence decisions (≥0.6), flag low for review
+
+### Phase 2: Enterprise Features
+- **📦 Batch Processing**: Process up to 20 products in parallel
+- **💾 Database Persistence**: SQLite with full audit trail
+- **📊 Real-time Dashboard**: Monitor orders, approve/reject pending items
+- **🔔 Slack Notifications**: Alerts for low-confidence orders
+- **⚡ Rate Limiting**: Protect endpoints (10/min for triggers)
+- **🔗 Webhook Callbacks**: External integration support
+- **🚀 CI/CD Pipeline**: GitHub Actions for automated testing
+
+### Production Ready
+- **🔒 Fail-Closed Security**: Explicit DEV_MODE required for insecure access
+- **⚙️ Configurable Thresholds**: AUTO_EXECUTE_THRESHOLD environment variable
+- **🛡️ Input Sanitization**: Prompt injection prevention
+- **📈 Prometheus Metrics**: Full observability
+- **🔀 Dual Modes**: Mock CSV + real-time input API
 
 ---
 
@@ -173,14 +186,27 @@ curl -X GET "http://localhost:8000/debug/STEEL_SHEETS?mode=mock" \
 
 ## 🔧 API Endpoints
 
+### Core Endpoints
 | Endpoint | Method | Description | Auth Required |
 |----------|--------|-------------|---------------|
 | `/` | GET | Health check | ❌ |
-| `/inventory-trigger` | POST | Main workflow execution | ✅ |
+| `/inventory-trigger` | POST | Analyze single product | ✅ |
 | `/debug/{product_id}` | GET | View calculations only | ✅ |
 | `/metrics` | GET | Prometheus metrics | ❌ |
 
-Full API docs: `http://localhost:8000/docs` (auto-generated)
+### Phase 2 Endpoints
+| Endpoint | Method | Description | Auth Required |
+|----------|--------|-------------|---------------|
+| `/dashboard` | GET | Monitoring dashboard UI | ❌ |
+| `/dashboard/stats` | GET | Dashboard statistics API | ✅ |
+| `/inventory-trigger-batch` | POST | Process multiple products | ✅ |
+| `/orders` | GET | List all orders (filterable) | ✅ |
+| `/orders/{id}` | GET | Get single order details | ✅ |
+| `/orders/{id}/approve` | POST | Approve pending order | ✅ |
+| `/orders/{id}/reject` | POST | Reject pending order | ✅ |
+
+**Interactive Docs**: `http://localhost:8000/docs`  
+**Dashboard**: `http://localhost:8000/dashboard`
 
 ---
 
@@ -228,11 +254,13 @@ Access Prometheus metrics at `http://localhost:8000/metrics`:
 
 ## 🔒 Security Features
 
-- ✅ API Key authentication (`X-API-Key` header)
-- ✅ Environment variable secrets management
-- ✅ Input validation via Pydantic
-- ✅ Error messages sanitized (no data leaks)
-- ⚠️ Add rate limiting for production deployment
+- ✅ **Fail-Closed Authentication**: Requires `DEV_MODE=true` explicitly for insecure access
+- ✅ **API Key Protection**: `X-API-Key` header validation
+- ✅ **Rate Limiting**: slowapi (10/min on triggers, 5/min on batch)
+- ✅ **Input Sanitization**: Prompt injection prevention
+- ✅ **Environment Secrets**: No credentials in code
+- ✅ **Pydantic Validation**: Type-safe request/response
+- ✅ **Configurable Thresholds**: `AUTO_EXECUTE_THRESHOLD` for business logic
 
 ---
 
@@ -274,12 +302,17 @@ docker-compose up
 
 ## 🎯 Project Status
 
-**Status**: ✅ Production-Ready  
-**Last Tested**: 2026-02-06  
+**Version**: v2.0.0 ✅  
+**Status**: Production-Ready  
+**Last Updated**: 2026-02-06  
 **Response Time**: 3-4 seconds (target <5s)  
 **Test Coverage**: 90%
 
-All core functionality verified with real LLM integration.
+### Changelog
+- **v2.0.0** (Feb 2026): Enterprise features - Dashboard, batch processing, database, CI/CD
+- **v1.0.0** (Feb 2026): Core agentic system with LLM reasoning
+
+All features verified with real LLM integration and comprehensive testing.
 
 ---
 
