@@ -1,0 +1,205 @@
+"""Reasoning agent with LLM integration and automatic failover."""
+
+import os
+import json
+import logging
+from typing import Dict, Any, Optional
+from langchain_google_genai import ChatGoogleGenerativeAI
+from langchain_groq import ChatGroq
+from tenacity import retry, stop_after_attempt, wait_exponential
+
+# Configure logger
+logger = logging.getLogger(__name__)
+
+
+# Prompt template for restock decisions
+RESTOCK_PROMPT = """You are an inventory management AI agent. Analyze the following inventory situation and recommend an action.
+
+## Current Status:
+- Product: {product_id}
+- Current Stock: {current_stock} units
+- Safety Stock: {safety_stock:.0f} units
+- Reorder Point: {reorder_point:.0f} units
+- Shortage: {shortage:.0f} units below ROP
+- Average Daily Demand: {avg_demand:.0f} units
+- Lead Time: {lead_time_days} days
+
+## Demand Trend (last 7 days):
+{demand_history}
+
+## Your Task:
+1. Analyze if restocking is needed
+2. Recommend: "restock" (purchase order) or "transfer" (from other warehouse)
+3. Calculate optimal quantity to order
+4. Provide confidence score (0.0 to 1.0)
+
+## Response Format (JSON only, no markdown):
+{{
+    "action": "restock" or "transfer",
+    "quantity": <number>,
+    "confidence": <0.0-1.0>,
+    "reasoning": "<brief explanation>"
+}}
+"""
+
+
+class LLMProvider:
+    """LLM Provider with automatic failover support."""
+    
+    def __init__(self):
+        self.provider_mode = os.getenv("LLM_PROVIDER", "auto")  # auto, primary, backup
+        self._primary_llm = None
+        self._backup_llm = None
+    
+    @property
+    def primary(self):
+        """Lazy-load Gemini (primary LLM)."""
+        if self._primary_llm is None:
+            api_key = os.getenv("GOOGLE_API_KEY")
+            if api_key:
+                self._primary_llm = ChatGoogleGenerativeAI(
+                    model="gemini-2.0-flash-exp",
+                    google_api_key=api_key,
+                    temperature=0.3
+                )
+        return self._primary_llm
+    
+    @property
+    def backup(self):
+        """Lazy-load Groq (backup LLM) - FREE and stable."""
+        if self._backup_llm is None:
+            api_key = os.getenv("GROQ_API_KEY")
+            if api_key:
+                self._backup_llm = ChatGroq(
+                    model="llama-3.3-70b-versatile",
+                    groq_api_key=api_key,
+                    temperature=0.3
+                )
+        return self._backup_llm
+    
+    def get_llm_chain(self):
+        """
+        Get ordered list of LLMs to try based on provider mode.
+        
+        Returns:
+            List of (name, llm) tuples in order of preference
+        """
+        if self.provider_mode == "primary":
+            return [("gemini", self.primary)] if self.primary else []
+        elif self.provider_mode == "backup":
+            return [("groq", self.backup)] if self.backup else []
+        else:  # auto - try primary, fallback to backup
+            chain = []
+            if self.primary:
+                chain.append(("gemini", self.primary))
+            if self.backup:
+                chain.append(("groq", self.backup))
+            return chain
+
+
+class ReasoningAgent:
+    """Reasoning agent with automatic LLM failover."""
+    
+    def __init__(self):
+        self.llm_provider = LLMProvider()
+    
+    def _parse_json_response(self, content: str) -> Dict[str, Any]:
+        """Extract and parse JSON from LLM response (robust against formatting)."""
+        # Remove markdown code blocks (case-insensitive)
+        content = content.strip()
+        content = content.replace("```json", "").replace("```JSON", "").replace("```", "")
+        content = content.strip()
+        
+        # Find JSON object (handles text before/after JSON)
+        start = content.find("{")
+        end = content.rfind("}") + 1
+        
+        if start == -1 or end == 0:
+            raise ValueError(f"No JSON object found in response: {content[:100]}")
+        
+        json_str = content[start:end]
+        return json.loads(json_str)
+    
+    async def _call_llm(self, llm, prompt: str, llm_name: str) -> Optional[Dict[str, Any]]:
+        """
+        Call a single LLM with retry logic.
+        
+        Returns:
+            Parsed response or None if failed
+        """
+        try:
+            logger.info(f"Calling LLM: {llm_name}")
+            response = await llm.ainvoke(prompt)
+            result = self._parse_json_response(response.content)
+            logger.info(f"LLM call successful: {llm_name}")
+            return result
+        except Exception as e:
+            logger.warning(f"LLM call failed ({llm_name}): {str(e)}", exc_info=True)
+            return None
+    
+    @retry(stop=stop_after_attempt(2), wait=wait_exponential(multiplier=1, min=1, max=5))
+    async def analyze(self, context: Dict[str, Any]) -> Dict[str, Any]:
+        """
+        Analyze inventory context with automatic failover.
+        
+        Tries primary LLM first (Gemini), falls back to backup (Groq) on failure.
+        
+        Args:
+            context: Dictionary with inventory parameters
+            
+        Returns:
+            Dictionary with action, quantity, confidence, reasoning
+            
+        Raises:
+            ValueError: If no LLM providers configured
+            RuntimeError: If all LLM providers fail
+        """
+        prompt = RESTOCK_PROMPT.format(**context)
+        llm_chain = self.llm_provider.get_llm_chain()
+        
+        if not llm_chain:
+            raise ValueError("No LLM providers configured. Check GOOGLE_API_KEY or GROQ_API_KEY.")
+        
+        last_error = None
+        for llm_name, llm in llm_chain:
+            result = await self._call_llm(llm, prompt, llm_name)
+            if result:
+                # Add metadata about which LLM was used
+                result["_llm_provider"] = llm_name
+                return result
+            last_error = f"{llm_name} failed"
+        
+        # All LLMs failed
+        raise RuntimeError(f"All LLM providers failed. Last error: {last_error}")
+
+
+# --- Standalone functions for testing ---
+
+async def analyze_with_gemini(context: Dict[str, Any]) -> Dict[str, Any]:
+    """Direct Gemini call (for testing)."""
+    llm = ChatGoogleGenerativeAI(
+        model="gemini-2.0-flash-exp",
+        google_api_key=os.getenv("GOOGLE_API_KEY"),
+        temperature=0.3
+    )
+    prompt = RESTOCK_PROMPT.format(**context)
+    response = await llm.ainvoke(prompt)
+    content = response.content
+    start = content.find("{")
+    end = content.rfind("}") + 1
+    return json.loads(content[start:end])
+
+
+async def analyze_with_groq(context: Dict[str, Any]) -> Dict[str, Any]:
+    """Direct Groq call (for testing) - FREE!"""
+    llm = ChatGroq(
+        model="llama-3.3-70b-versatile",
+        groq_api_key=os.getenv("GROQ_API_KEY"),
+        temperature=0.3
+    )
+    prompt = RESTOCK_PROMPT.format(**context)
+    response = await llm.ainvoke(prompt)
+    content = response.content
+    start = content.find("{")
+    end = content.rfind("}") + 1
+    return json.loads(content[start:end])
