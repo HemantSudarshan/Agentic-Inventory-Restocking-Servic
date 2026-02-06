@@ -17,8 +17,8 @@
                 extend: {
                     fontFamily: { sans: ['Inter', 'sans-serif'] },
                     colors: {
-                        primary: { 50: '#faf5ff', 100: '#f3e8ff', 500: '#a855f7', 600: '#9333ea', 700: '#7c3aed' },
-                        surface: { 50: '#f8fafc', 100: '#f1f5f9', 800: '#1e293b', 900: '#0f172a' }
+                        primary: { 50: '#fff7ed', 100: '#ffedd5', 400: '#fb923c', 500: '#ff8c00', 600: '#ff6600', 700: '#ea580c' },
+                        surface: { 50: '#1a1a1a', 100: '#141414', 800: '#0f0f0f', 900: '#0a0a0a' }
                     }
                 }
             }
@@ -27,36 +27,43 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
+            background: #0a0a0a;
         }
 
         .card {
-            background: linear-gradient(145deg, rgba(30, 41, 59, 0.8), rgba(15, 23, 42, 0.9));
+            background: linear-gradient(145deg, rgba(20, 20, 20, 0.95), rgba(10, 10, 10, 0.98));
             backdrop-filter: blur(20px);
-            border: 1px solid rgba(148, 163, 184, 0.1);
-        }
-
-        .card-light {
-            background: linear-gradient(145deg, rgba(255, 255, 255, 0.05), rgba(255, 255, 255, 0.02));
-            border: 1px solid rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 140, 0, 0.12);
         }
 
         .stat-card {
-            background: linear-gradient(135deg, rgba(168, 85, 247, 0.1), rgba(236, 72, 153, 0.05));
-            border: 1px solid rgba(168, 85, 247, 0.2);
+            background: linear-gradient(135deg, rgba(255, 140, 0, 0.08), rgba(255, 102, 0, 0.03));
+            border: 1px solid rgba(255, 140, 0, 0.15);
+        }
+
+        .stat-card:hover {
+            border-color: rgba(255, 140, 0, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 140, 0, 0.1);
         }
 
         .btn-primary {
-            background: linear-gradient(135deg, #a855f7, #ec4899);
+            background: linear-gradient(135deg, #ff8c00, #ff6600);
             transition: all 0.3s ease;
         }
 
         .btn-primary:hover {
             transform: translateY(-2px);
-            box-shadow: 0 10px 40px rgba(168, 85, 247, 0.4);
+            box-shadow: 0 10px 40px rgba(255, 140, 0, 0.35);
+        }
+
+        .order-row {
+            transition: all 0.2s ease;
+            border-bottom: 1px solid rgba(255, 255, 255, 0.05);
         }
 
         .order-row:hover {
-            background: rgba(168, 85, 247, 0.05);
+            background: rgba(255, 140, 0, 0.05);
         }
 
         @keyframes fadeIn {
@@ -88,437 +95,424 @@
         }
 
         .modal-backdrop {
-            background: rgba(0, 0, 0, 0.7);
+            background: rgba(0, 0, 0, 0.85);
             backdrop-filter: blur(8px);
+        }
+
+        .glow-orange {
+            box-shadow: 0 0 30px rgba(255, 140, 0, 0.2);
+        }
+
+        .text-gradient {
+            background: linear-gradient(135deg, #ff8c00, #ff6600);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        ::-webkit-scrollbar {
+            width: 8px;
+            height: 8px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #111;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: rgba(255, 140, 0, 0.3);
+            border-radius: 4px;
+        }
+
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(255, 140, 0, 0.5);
         }
     </style>
 </head>
 
-<body class="bg-surface-900 min-h-screen text-slate-200">
+<body class="min-h-screen text-slate-200">
     <!-- Header -->
-    <header class="sticky top-0 z-50 border-b border-slate-800 bg-surface-900/80 backdrop-blur-lg">
+    <header class="sticky top-0 z-50 border-b border-orange-900/20 bg-surface-900/90 backdrop-blur-lg">
         <div class="max-w-7xl mx-auto px-6 py-4">
             <div class="flex items-center justify-between">
                 <div class="flex items-center gap-4">
-                    <div
-                        class="w-10 h-10 rounded-xl bg-gradient-to-br from-purple-500 to-pink-500 flex items-center justify-center shadow-lg shadow-purple-500/20">
-                        <i data-lucide="package" class="w-5 h-5 text-white"></i>
+                    <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-2.5 rounded-xl glow-orange">
+                        <i data-lucide="package" class="h-6 w-6 text-white"></i>
                     </div>
                     <div>
-                        <h1 class="text-lg font-semibold text-white">Inventory Agent</h1>
-                        <p class="text-xs text-slate-400">AI-Powered Restocking System</p>
+                        <h1 class="text-xl font-bold text-white">Inventory Agent</h1>
+                        <p class="text-sm text-slate-500">AI-Powered Restocking</p>
                     </div>
                 </div>
-                <div class="flex items-center gap-3">
-                    <div
-                        class="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                        <div class="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></div>
-                        <span class="text-xs font-medium text-emerald-400">Online</span>
-                    </div>
-                    <button onclick="refreshData()"
-                        class="p-2 rounded-lg hover:bg-slate-800 transition text-slate-400 hover:text-white">
-                        <i data-lucide="refresh-cw" class="w-4 h-4"></i>
-                    </button>
+                <div class="flex items-center gap-4">
+                    <span id="status-badge"
+                        class="px-3 py-1.5 rounded-full text-xs font-medium flex items-center gap-2 bg-emerald-900/30 text-emerald-400 border border-emerald-800">
+                        <span class="w-2 h-2 bg-emerald-400 rounded-full animate-pulse"></span>
+                        System Online
+                    </span>
+                    <a href="/auth/logout"
+                        class="px-4 py-2 text-sm text-slate-400 hover:text-orange-400 transition-colors flex items-center gap-2">
+                        <i data-lucide="log-out" class="h-4 w-4"></i>
+                        Logout
+                    </a>
                 </div>
             </div>
         </div>
     </header>
 
     <main class="max-w-7xl mx-auto px-6 py-8">
-        <!-- Stats Row -->
-        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-            <div class="stat-card rounded-2xl p-5 animate-fade-in">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-medium text-purple-400 uppercase tracking-wide">Total Orders</span>
-                    <i data-lucide="package" class="w-4 h-4 text-purple-400"></i>
+        <!-- Stats Grid -->
+        <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8 animate-fade-in">
+            <div class="stat-card rounded-2xl p-6 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-orange-500/20 rounded-xl">
+                        <i data-lucide="package" class="h-6 w-6 text-orange-400"></i>
+                    </div>
+                    <span class="text-xs text-slate-500">Products</span>
                 </div>
-                <p id="stat-total" class="text-3xl font-bold text-white">0</p>
-                <p class="text-xs text-slate-500 mt-1">Purchase orders created</p>
+                <p id="total-products" class="text-3xl font-bold text-white">10</p>
+                <p class="text-sm text-slate-500 mt-1">Monitored Items</p>
             </div>
 
-            <div class="card-light rounded-2xl p-5 animate-fade-in" style="animation-delay: 0.1s">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-medium text-emerald-400 uppercase tracking-wide">Completed</span>
-                    <i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i>
+            <div class="stat-card rounded-2xl p-6 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-emerald-500/20 rounded-xl">
+                        <i data-lucide="check-circle" class="h-6 w-6 text-emerald-400"></i>
+                    </div>
+                    <span class="text-xs text-slate-500">Auto-executed</span>
                 </div>
-                <p id="stat-executed" class="text-3xl font-bold text-white">0</p>
-                <p class="text-xs text-slate-500 mt-1">Auto-approved by AI</p>
+                <p id="executed-orders" class="text-3xl font-bold text-white">0</p>
+                <p class="text-sm text-slate-500 mt-1">High Confidence</p>
             </div>
 
-            <div class="card-light rounded-2xl p-5 animate-fade-in" style="animation-delay: 0.2s">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-medium text-amber-400 uppercase tracking-wide">Pending</span>
-                    <i data-lucide="clock" class="w-4 h-4 text-amber-400"></i>
+            <div class="stat-card rounded-2xl p-6 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-yellow-500/20 rounded-xl">
+                        <i data-lucide="clock" class="h-6 w-6 text-yellow-400"></i>
+                    </div>
+                    <span class="text-xs text-slate-500">Pending</span>
                 </div>
-                <p id="stat-pending" class="text-3xl font-bold text-white">0</p>
-                <p class="text-xs text-slate-500 mt-1">Awaiting your review</p>
+                <p id="pending-orders" class="text-3xl font-bold text-white">0</p>
+                <p class="text-sm text-slate-500 mt-1">Awaiting Review</p>
             </div>
 
-            <div class="card-light rounded-2xl p-5 animate-fade-in" style="animation-delay: 0.3s">
-                <div class="flex items-center justify-between mb-3">
-                    <span class="text-xs font-medium text-cyan-400 uppercase tracking-wide">AI Score</span>
-                    <i data-lucide="brain" class="w-4 h-4 text-cyan-400"></i>
+            <div class="stat-card rounded-2xl p-6 transition-all duration-300">
+                <div class="flex items-center justify-between mb-4">
+                    <div class="p-3 bg-blue-500/20 rounded-xl">
+                        <i data-lucide="brain" class="h-6 w-6 text-blue-400"></i>
+                    </div>
+                    <span class="text-xs text-slate-500">AI Model</span>
                 </div>
-                <p id="stat-confidence" class="text-3xl font-bold text-white">0%</p>
-                <p class="text-xs text-slate-500 mt-1">Average confidence</p>
+                <p id="ai-model" class="text-lg font-bold text-white">Gemini</p>
+                <p class="text-sm text-slate-500 mt-1">LangGraph Workflow</p>
             </div>
         </div>
 
-        <!-- Main Grid -->
-        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            <!-- Orders Table -->
-            <div class="lg:col-span-2 card rounded-2xl overflow-hidden animate-fade-in">
-                <div class="px-6 py-4 border-b border-slate-700/50 flex items-center justify-between">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="clipboard-list" class="w-4 h-4 text-purple-400"></i>
-                        <h2 class="font-semibold text-white">Recent Orders</h2>
+        <!-- Action Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- Trigger Analysis -->
+            <div class="lg:col-span-2 card rounded-2xl p-6 animate-fade-in">
+                <h2 class="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                    <i data-lucide="zap" class="h-5 w-5 text-orange-400"></i>
+                    Quick Analysis
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-sm text-slate-400 mb-2">Select Product</label>
+                        <select id="product-select"
+                            class="w-full bg-surface-800 border border-orange-900/20 rounded-xl px-4 py-3 text-white focus:border-orange-500 focus:outline-none">
+                            <option value="STEEL_SHEETS">STEEL_SHEETS (Rising Demand)</option>
+                            <option value="LEGACY_PARTS">LEGACY_PARTS (Falling Demand)</option>
+                            <option value="HOLIDAY_PACKAGING">HOLIDAY_PACKAGING (Seasonal)</option>
+                            <option value="ELECTRONIC_COMPONENTS">ELECTRONIC_COMPONENTS (Volatile)</option>
+                            <option value="OFFICE_SUPPLIES">OFFICE_SUPPLIES (Stable)</option>
+                            <option value="ALUMINUM_BARS">ALUMINUM_BARS</option>
+                            <option value="COPPER_WIRE">COPPER_WIRE</option>
+                            <option value="PLASTIC_PELLETS">PLASTIC_PELLETS</option>
+                            <option value="TITANIUM_RODS">TITANIUM_RODS</option>
+                            <option value="RUBBER_SHEETS">RUBBER_SHEETS</option>
+                            <option value="CARBON_FIBER">CARBON_FIBER</option>
+                        </select>
                     </div>
-                    <span class="text-xs text-slate-500">Last 10</span>
+                    <div class="flex items-end">
+                        <button id="analyze-btn"
+                            class="btn-primary w-full rounded-xl px-6 py-3 text-white font-semibold flex items-center justify-center gap-2">
+                            <i data-lucide="sparkles" class="h-5 w-5"></i>
+                            Run AI Analysis
+                        </button>
+                    </div>
                 </div>
-                <div class="overflow-x-auto">
-                    <table class="w-full">
-                        <thead>
-                            <tr
-                                class="text-left text-xs text-slate-500 uppercase tracking-wide border-b border-slate-800">
-                                <th class="px-6 py-3 font-medium">Material</th>
-                                <th class="px-6 py-3 font-medium">Quantity</th>
-                                <th class="px-6 py-3 font-medium">Confidence</th>
-                                <th class="px-6 py-3 font-medium">Status</th>
-                                <th class="px-6 py-3 font-medium">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody id="orders-table" class="divide-y divide-slate-800/50">
-                            <tr>
-                                <td colspan="5" class="px-6 py-12 text-center text-slate-500">
-                                    <i data-lucide="loader" class="w-6 h-6 mx-auto mb-2 animate-spin opacity-50"></i>
-                                    <p>Loading orders...</p>
-                                </td>
-                            </tr>
-                        </tbody>
-                    </table>
+
+                <!-- Result Area -->
+                <div id="result-area" class="mt-6 hidden">
+                    <div class="bg-surface-800/50 rounded-xl p-5 border border-orange-900/10">
+                        <div class="flex items-center justify-between mb-4">
+                            <h3 class="font-semibold text-white" id="result-product">Loading...</h3>
+                            <span id="result-status" class="px-3 py-1 rounded-full text-xs font-medium"></span>
+                        </div>
+                        <div class="grid grid-cols-2 md:grid-cols-4 gap-4 mb-4">
+                            <div>
+                                <p class="text-xs text-slate-500">Confidence</p>
+                                <p id="result-confidence" class="text-lg font-bold text-orange-400">--%</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-500">Quantity</p>
+                                <p id="result-quantity" class="text-lg font-bold text-white">--</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-500">Safety Stock</p>
+                                <p id="result-safety" class="text-lg font-bold text-white">--</p>
+                            </div>
+                            <div>
+                                <p class="text-xs text-slate-500">Est. Cost</p>
+                                <p id="result-cost" class="text-lg font-bold text-emerald-400">$--</p>
+                            </div>
+                        </div>
+                        <div>
+                            <p class="text-xs text-slate-500 mb-2">AI Reasoning</p>
+                            <p id="result-reasoning" class="text-sm text-slate-300 bg-surface-900/50 p-3 rounded-lg">--
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            <!-- Sidebar -->
-            <div class="space-y-6">
-                <!-- Quick Action -->
-                <div class="card rounded-2xl p-6 animate-fade-in">
-                    <div class="flex items-center gap-2 mb-4">
-                        <i data-lucide="zap" class="w-4 h-4 text-amber-400"></i>
-                        <h3 class="font-semibold text-white">Check Inventory</h3>
+            <!-- Quick Stats -->
+            <div class="card rounded-2xl p-6 animate-fade-in">
+                <h2 class="text-lg font-semibold text-white mb-6 flex items-center gap-2">
+                    <i data-lucide="activity" class="h-5 w-5 text-orange-400"></i>
+                    System Info
+                </h2>
+                <div class="space-y-4">
+                    <div class="flex justify-between items-center p-3 bg-surface-800/50 rounded-xl">
+                        <span class="text-slate-400 text-sm">API Version</span>
+                        <span class="text-white font-medium">v2.5.0</span>
                     </div>
-                    <div class="space-y-3">
-                        <select id="product-select"
-                            class="w-full bg-slate-800/50 border border-slate-700 rounded-xl px-4 py-3 text-sm focus:outline-none focus:border-purple-500 focus:ring-1 focus:ring-purple-500/20">
-                            <option value="STEEL_SHEETS">Steel Sheets</option>
-                            <option value="ALUMINUM_BARS">Aluminum Bars</option>
-                            <option value="COPPER_WIRE">Copper Wire</option>
-                            <option value="PLASTIC_PELLETS">Plastic Pellets</option>
-                            <option value="TITANIUM_RODS">Titanium Rods</option>
-                            <option value="RUBBER_SHEETS">Rubber Sheets</option>
-                        </select>
-                        <button onclick="triggerOrder()" id="trigger-btn"
-                            class="w-full btn-primary py-3 rounded-xl font-medium text-white flex items-center justify-center gap-2">
-                            <i data-lucide="play" class="w-4 h-4"></i>
-                            Run Analysis
-                        </button>
-                        <button onclick="showVerification()"
-                            class="w-full py-2.5 rounded-xl border border-slate-700 text-slate-400 text-sm hover:bg-slate-800 hover:text-white transition flex items-center justify-center gap-2">
-                            <i data-lucide="calculator" class="w-3.5 h-3.5"></i>
-                            View Calculations
-                        </button>
+                    <div class="flex justify-between items-center p-3 bg-surface-800/50 rounded-xl">
+                        <span class="text-slate-400 text-sm">LangGraph</span>
+                        <span class="text-emerald-400 font-medium flex items-center gap-1">
+                            <span class="w-2 h-2 bg-emerald-400 rounded-full"></span>
+                            Enabled
+                        </span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-surface-800/50 rounded-xl">
+                        <span class="text-slate-400 text-sm">Threshold</span>
+                        <span class="text-orange-400 font-medium">60%</span>
+                    </div>
+                    <div class="flex justify-between items-center p-3 bg-surface-800/50 rounded-xl">
+                        <span class="text-slate-400 text-sm">Data Mode</span>
+                        <span class="text-white font-medium">Mock</span>
                     </div>
                 </div>
 
-                <!-- Products Chart -->
-                <div class="card rounded-2xl p-6 animate-fade-in">
-                    <div class="flex items-center gap-2 mb-4">
-                        <i data-lucide="pie-chart" class="w-4 h-4 text-cyan-400"></i>
-                        <h3 class="font-semibold text-white">Orders by Product</h3>
-                    </div>
-                    <div class="h-44">
-                        <canvas id="productChart"></canvas>
-                    </div>
+                <div class="mt-6 pt-6 border-t border-orange-900/10">
+                    <a href="/docs" target="_blank"
+                        class="flex items-center justify-center gap-2 text-orange-400 hover:text-orange-300 text-sm font-medium">
+                        <i data-lucide="book-open" class="h-4 w-4"></i>
+                        API Documentation
+                    </a>
                 </div>
+            </div>
+        </div>
 
-                <!-- Telegram -->
-                <div class="card rounded-2xl p-6 animate-fade-in">
-                    <div class="flex items-center gap-2 mb-4">
-                        <i data-lucide="bell" class="w-4 h-4 text-blue-400"></i>
-                        <h3 class="font-semibold text-white">Telegram Alerts</h3>
-                    </div>
-                    <div class="text-center">
-                        <div class="w-28 h-28 mx-auto mb-3 bg-white rounded-xl p-1.5 shadow-lg">
-                            <img id="telegram-qr" src="" alt="QR Code" class="w-full h-full rounded-lg">
-                        </div>
-                        <p class="text-xs text-slate-400 mb-2">Scan to receive alerts</p>
-                        <a id="telegram-link" href="#" target="_blank"
-                            class="text-xs text-blue-400 hover:underline">Open in Telegram →</a>
-                    </div>
+        <!-- Orders Table -->
+        <div class="card rounded-2xl animate-fade-in">
+            <div class="p-6 border-b border-orange-900/10">
+                <div class="flex items-center justify-between">
+                    <h2 class="text-lg font-semibold text-white flex items-center gap-2">
+                        <i data-lucide="list" class="h-5 w-5 text-orange-400"></i>
+                        Recent Orders
+                    </h2>
+                    <button id="refresh-btn"
+                        class="text-slate-400 hover:text-orange-400 transition-colors flex items-center gap-2 text-sm">
+                        <i data-lucide="refresh-cw" class="h-4 w-4"></i>
+                        Refresh
+                    </button>
                 </div>
-
-                <!-- System Status -->
-                <div class="card rounded-2xl p-6 animate-fade-in">
-                    <div class="flex items-center gap-2 mb-4">
-                        <i data-lucide="activity" class="w-4 h-4 text-emerald-400"></i>
-                        <h3 class="font-semibold text-white">System Status</h3>
-                    </div>
-                    <div class="space-y-3 text-sm">
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-400">API</span>
-                            <span id="health-api"
-                                class="px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 text-xs font-medium">Healthy</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-400">AI Model</span>
-                            <span class="text-slate-300 text-xs">Gemini 2.0 Flash</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-400">Database</span>
-                            <span class="text-slate-300 text-xs">SQLite Connected</span>
-                        </div>
-                        <div class="flex items-center justify-between">
-                            <span class="text-slate-400">Latency</span>
-                            <span class="text-slate-300 text-xs">~3s</span>
-                        </div>
-                    </div>
-                </div>
+            </div>
+            <div class="overflow-x-auto">
+                <table class="w-full">
+                    <thead>
+                        <tr class="text-left text-xs text-slate-500 border-b border-orange-900/10">
+                            <th class="px-6 py-4 font-medium">Product</th>
+                            <th class="px-6 py-4 font-medium">Quantity</th>
+                            <th class="px-6 py-4 font-medium">Confidence</th>
+                            <th class="px-6 py-4 font-medium">Status</th>
+                            <th class="px-6 py-4 font-medium">Time</th>
+                            <th class="px-6 py-4 font-medium">Actions</th>
+                        </tr>
+                    </thead>
+                    <tbody id="orders-table">
+                        <tr class="order-row">
+                            <td colspan="6" class="px-6 py-12 text-center text-slate-500">
+                                <i data-lucide="inbox" class="h-12 w-12 mx-auto mb-3 opacity-30"></i>
+                                <p>No orders yet. Run an analysis above to get started.</p>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
             </div>
         </div>
     </main>
 
-    <!-- Verification Modal -->
-    <div id="verification-modal" class="fixed inset-0 z-50 hidden">
-        <div class="modal-backdrop absolute inset-0" onclick="closeVerification()"></div>
-        <div class="absolute inset-4 md:inset-10 lg:inset-20 flex items-center justify-center">
-            <div class="card rounded-2xl w-full max-w-2xl max-h-full overflow-auto p-6 relative">
-                <div class="flex items-center justify-between mb-6">
-                    <div class="flex items-center gap-2">
-                        <i data-lucide="calculator" class="w-5 h-5 text-purple-400"></i>
-                        <h2 class="text-lg font-semibold text-white">Calculation Breakdown</h2>
-                    </div>
-                    <button onclick="closeVerification()"
-                        class="p-2 rounded-lg hover:bg-slate-800 text-slate-400 hover:text-white transition">
-                        <i data-lucide="x" class="w-5 h-5"></i>
-                    </button>
-                </div>
-                <div id="verification-content">
-                    <div class="text-center py-12 text-slate-500">
-                        <i data-lucide="loader" class="w-8 h-8 mx-auto mb-3 animate-spin opacity-50"></i>
-                        <p>Loading calculations...</p>
-                    </div>
-                </div>
-            </div>
+    <!-- Footer -->
+    <footer class="border-t border-orange-900/10 mt-12">
+        <div class="max-w-7xl mx-auto px-6 py-6 text-center">
+            <p class="text-slate-500 text-sm">
+                Agentic Inventory Restocking Service •
+                <span class="text-orange-400">Phase 5</span> •
+                Built with LangGraph + FastAPI
+            </p>
         </div>
-    </div>
-
-    <!-- Toast -->
-    <div id="toast"
-        class="fixed bottom-6 right-6 px-5 py-3 rounded-xl bg-slate-800 border border-slate-700 shadow-xl transform translate-y-20 opacity-0 transition-all duration-300 z-50">
-        <p id="toast-message" class="text-sm text-white"></p>
-    </div>
+    </footer>
 
     <script>
+        // Initialize Lucide icons
         lucide.createIcons();
-        const API_KEY = 'dev-inventory-agent-2026';
-        let productChart = null;
 
-        async function fetchWithAuth(url, options = {}) {
-            const headers = { 'X-API-Key': API_KEY, 'Content-Type': 'application/json', ...options.headers };
-            const response = await fetch(url, { ...options, headers });
-            if (!response.ok) throw new Error(`HTTP ${response.status}`);
-            return response.json();
+        // Get API key from localStorage or prompt
+        let apiKey = localStorage.getItem('api_key');
+        if (!apiKey) {
+            apiKey = 'test-api-key-123'; // Default for demo
+            localStorage.setItem('api_key', apiKey);
         }
 
-        function showToast(message, type = 'info') {
-            const toast = document.getElementById('toast');
-            const msgEl = document.getElementById('toast-message');
-            msgEl.textContent = message;
-            toast.classList.remove('translate-y-20', 'opacity-0');
-            toast.classList.add('translate-y-0', 'opacity-100');
-            if (type === 'error') toast.style.borderColor = '#ef4444';
-            else if (type === 'success') toast.style.borderColor = '#10b981';
-            else toast.style.borderColor = '#a855f7';
-            setTimeout(() => {
-                toast.classList.remove('translate-y-0', 'opacity-100');
-                toast.classList.add('translate-y-20', 'opacity-0');
-            }, 3000);
+        // Store orders locally
+        let orders = [];
+
+        // Analyze button handler
+        document.getElementById('analyze-btn').addEventListener('click', async () => {
+            const product = document.getElementById('product-select').value;
+            const btn = document.getElementById('analyze-btn');
+            const resultArea = document.getElementById('result-area');
+
+            btn.disabled = true;
+            btn.innerHTML = '<i data-lucide="loader-2" class="h-5 w-5 animate-spin"></i> Analyzing...';
+            lucide.createIcons();
+
+            try {
+                const response = await fetch('/inventory-trigger', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                        'X-API-Key': apiKey
+                    },
+                    body: JSON.stringify({
+                        product_id: product,
+                        mode: 'mock'
+                    })
+                });
+
+                const data = await response.json();
+
+                // Show result
+                resultArea.classList.remove('hidden');
+                document.getElementById('result-product').textContent = data.product_id || product;
+                document.getElementById('result-confidence').textContent =
+                    data.confidence ? `${Math.round(data.confidence * 100)}%` : '--';
+                document.getElementById('result-quantity').textContent =
+                    data.quantity?.toLocaleString() || '--';
+                document.getElementById('result-safety').textContent =
+                    data.safety_stock?.toFixed(0) || '--';
+                document.getElementById('result-cost').textContent =
+                    data.estimated_cost ? `$${data.estimated_cost.toLocaleString()}` : '--';
+                document.getElementById('result-reasoning').textContent =
+                    data.reasoning || 'No reasoning provided';
+
+                // Status badge
+                const statusEl = document.getElementById('result-status');
+                if (data.status === 'executed') {
+                    statusEl.className = 'px-3 py-1 rounded-full text-xs font-medium bg-emerald-900/30 text-emerald-400';
+                    statusEl.textContent = '✓ Executed';
+                } else if (data.status === 'pending') {
+                    statusEl.className = 'px-3 py-1 rounded-full text-xs font-medium bg-yellow-900/30 text-yellow-400';
+                    statusEl.textContent = '⏳ Pending';
+                } else {
+                    statusEl.className = 'px-3 py-1 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400';
+                    statusEl.textContent = data.status || 'Unknown';
+                }
+
+                // Add to orders list
+                orders.unshift({
+                    ...data,
+                    time: new Date().toLocaleTimeString()
+                });
+                updateOrdersTable();
+                updateStats();
+
+            } catch (error) {
+                console.error('Analysis error:', error);
+                resultArea.classList.remove('hidden');
+                document.getElementById('result-product').textContent = 'Error';
+                document.getElementById('result-reasoning').textContent = error.message;
+            }
+
+            btn.disabled = false;
+            btn.innerHTML = '<i data-lucide="sparkles" class="h-5 w-5"></i> Run AI Analysis';
+            lucide.createIcons();
+        });
+
+        function updateOrdersTable() {
+            const tbody = document.getElementById('orders-table');
+            if (orders.length === 0) return;
+
+            tbody.innerHTML = orders.slice(0, 10).map(order => `
+                <tr class="order-row">
+                    <td class="px-6 py-4">
+                        <span class="font-medium text-white">${order.product_id || 'Unknown'}</span>
+                    </td>
+                    <td class="px-6 py-4 text-slate-300">${order.quantity?.toLocaleString() || '-'}</td>
+                    <td class="px-6 py-4">
+                        <div class="flex items-center gap-2">
+                            <div class="confidence-bar w-16">
+                                <div class="confidence-fill ${getConfidenceColor(order.confidence)}" 
+                                    style="width: ${(order.confidence || 0) * 100}%"></div>
+                            </div>
+                            <span class="text-sm">${Math.round((order.confidence || 0) * 100)}%</span>
+                        </div>
+                    </td>
+                    <td class="px-6 py-4">
+                        <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(order.status)}">
+                            ${order.status || 'unknown'}
+                        </span>
+                    </td>
+                    <td class="px-6 py-4 text-slate-400 text-sm">${order.time || '-'}</td>
+                    <td class="px-6 py-4">
+                        ${order.status === 'pending' ? `
+                            <button class="text-emerald-400 hover:text-emerald-300 text-sm mr-3">Approve</button>
+                            <button class="text-red-400 hover:text-red-300 text-sm">Reject</button>
+                        ` : '-'}
+                    </td>
+                </tr>
+            `).join('');
+            lucide.createIcons();
         }
 
         function getConfidenceColor(conf) {
-            if (conf >= 0.8) return '#10b981';
-            if (conf >= 0.6) return '#f59e0b';
-            return '#ef4444';
+            if (conf >= 0.8) return 'bg-emerald-500';
+            if (conf >= 0.6) return 'bg-yellow-500';
+            return 'bg-red-500';
         }
 
-        function renderOrderRow(order) {
-            const conf = order.confidence || 0;
-            const confPct = Math.round(conf * 100);
-            const isExecuted = order.status === 'executed';
-            const productName = (order.product_id || '').replace(/_/g, ' ');
-
-            return `
-                <tr class="order-row transition">
-                    <td class="px-6 py-4">
-                        <div class="flex items-center gap-3">
-                            <div class="w-8 h-8 rounded-lg bg-purple-500/10 flex items-center justify-center">
-                                <i data-lucide="cube" class="w-4 h-4 text-purple-400"></i>
-                            </div>
-                            <div>
-                                <p class="text-sm font-medium text-white">${productName}</p>
-                                <p class="text-xs text-slate-500">${(order.order_id || '').slice(-12)}</p>
-                            </div>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="text-white font-medium">${(order.quantity || 0).toLocaleString()}</span>
-                        <span class="text-slate-500 text-sm"> units</span>
-                    </td>
-                    <td class="px-6 py-4">
-                        <div class="flex items-center gap-2">
-                            <div class="w-16 confidence-bar">
-                                <div class="confidence-fill" style="width: ${confPct}%; background: ${getConfidenceColor(conf)};"></div>
-                            </div>
-                            <span class="text-xs text-slate-400">${confPct}%</span>
-                        </div>
-                    </td>
-                    <td class="px-6 py-4">
-                        <span class="px-2.5 py-1 rounded-full text-xs font-medium ${isExecuted ? 'bg-emerald-500/10 text-emerald-400' : 'bg-amber-500/10 text-amber-400'}">
-                            ${isExecuted ? 'Completed' : 'Pending'}
-                        </span>
-                    </td>
-                    <td class="px-6 py-4">
-                        ${!isExecuted ? `
-                            <div class="flex gap-2">
-                                <button onclick="approveOrder('${order.order_id}')" class="px-3 py-1.5 rounded-lg bg-emerald-500/10 text-emerald-400 text-xs font-medium hover:bg-emerald-500/20 transition">Approve</button>
-                                <button onclick="rejectOrder('${order.order_id}')" class="px-3 py-1.5 rounded-lg bg-red-500/10 text-red-400 text-xs font-medium hover:bg-red-500/20 transition">Reject</button>
-                            </div>
-                        ` : '<span class="text-slate-600 text-xs">—</span>'}
-                    </td>
-                </tr>
-            `;
+        function getStatusClass(status) {
+            if (status === 'executed') return 'bg-emerald-900/30 text-emerald-400';
+            if (status === 'pending') return 'bg-yellow-900/30 text-yellow-400';
+            return 'bg-slate-700 text-slate-400';
         }
 
-        async function refreshData() {
-            try {
-                const health = await fetch('/').then(r => r.json());
-                document.getElementById('health-api').textContent = health.status === 'running' ? 'Healthy' : 'Error';
+        function updateStats() {
+            const executed = orders.filter(o => o.status === 'executed').length;
+            const pending = orders.filter(o => o.status === 'pending').length;
 
-                const stats = await fetchWithAuth('/dashboard/stats');
-                document.getElementById('stat-total').textContent = stats.total_orders || 0;
-                document.getElementById('stat-executed').textContent = stats.status_breakdown?.executed || 0;
-                document.getElementById('stat-pending').textContent = stats.status_breakdown?.pending_review || stats.status_breakdown?.pending || 0;
-                document.getElementById('stat-confidence').textContent = `${Math.round((stats.average_confidence || 0) * 100)}%`;
-
-                const tbody = document.getElementById('orders-table');
-                if (stats.recent_orders?.length > 0) {
-                    tbody.innerHTML = stats.recent_orders.map(renderOrderRow).join('');
-                } else {
-                    tbody.innerHTML = `
-                        <tr><td colspan="5" class="px-6 py-12 text-center">
-                            <div class="w-12 h-12 mx-auto mb-3 rounded-xl bg-slate-800 flex items-center justify-center">
-                                <i data-lucide="inbox" class="w-6 h-6 text-slate-600"></i>
-                            </div>
-                            <p class="text-slate-500 mb-1">No orders yet</p>
-                            <p class="text-xs text-slate-600">Run an analysis to create your first order</p>
-                        </td></tr>
-                    `;
-                }
-                updateChart(stats.top_products || []);
-                lucide.createIcons();
-            } catch (e) { console.error('Refresh failed:', e); }
+            document.getElementById('executed-orders').textContent = executed;
+            document.getElementById('pending-orders').textContent = pending;
         }
 
-        function updateChart(products) {
-            const ctx = document.getElementById('productChart').getContext('2d');
-            if (productChart) productChart.destroy();
-            if (products.length === 0) return;
-
-            productChart = new Chart(ctx, {
-                type: 'doughnut',
-                data: {
-                    labels: products.map(p => (p.product_id || '').replace(/_/g, ' ')),
-                    datasets: [{ data: products.map(p => p.total_orders), backgroundColor: ['#a855f7', '#ec4899', '#22d3ee', '#10b981', '#f59e0b'], borderWidth: 0 }]
-                },
-                options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { position: 'bottom', labels: { color: '#94a3b8', font: { size: 10 }, boxWidth: 12 } } } }
-            });
-        }
-
-        async function loadTelegramSetup() {
-            try {
-                const data = await fetch('/telegram/setup').then(r => r.json());
-                document.getElementById('telegram-qr').src = data.qr_url;
-                document.getElementById('telegram-link').href = data.bot_link;
-            } catch (e) { console.log('Telegram setup unavailable'); }
-        }
-
-        async function triggerOrder() {
-            const btn = document.getElementById('trigger-btn');
-            const product = document.getElementById('product-select').value;
-            const name = document.getElementById('product-select').selectedOptions[0].text;
-            btn.disabled = true;
-            btn.innerHTML = '<i data-lucide="loader" class="w-4 h-4 animate-spin"></i> Analyzing...';
-            showToast(`Analyzing ${name}...`, 'info');
-            try {
-                const result = await fetchWithAuth('/inventory-trigger', { method: 'POST', body: JSON.stringify({ product_id: product, mode: 'mock' }) });
-                showToast(`✓ Order created: ${result.recommended_quantity || result.quantity} units`, 'success');
-                refreshData();
-            } catch (e) { showToast('Failed to create order', 'error'); }
-            finally { btn.disabled = false; btn.innerHTML = '<i data-lucide="play" class="w-4 h-4"></i> Run Analysis'; lucide.createIcons(); }
-        }
-
-        async function showVerification() {
-            const modal = document.getElementById('verification-modal');
-            const content = document.getElementById('verification-content');
-            const product = document.getElementById('product-select').value;
-            modal.classList.remove('hidden');
-            content.innerHTML = '<div class="text-center py-12 text-slate-500"><i data-lucide="loader" class="w-8 h-8 mx-auto mb-3 animate-spin opacity-50"></i><p>Loading...</p></div>';
-            lucide.createIcons();
-            try {
-                const data = await fetchWithAuth(`/verify-calculation/${product}`);
-                content.innerHTML = `
-                    <div class="space-y-4">
-                        <div class="bg-slate-800/50 rounded-xl p-4">
-                            <p class="text-xs text-purple-400 font-medium uppercase tracking-wide mb-3">Input Data</p>
-                            <div class="grid grid-cols-2 gap-3 text-sm">
-                                <div><span class="text-slate-500">Product:</span> <span class="text-white">${data.product_id}</span></div>
-                                <div><span class="text-slate-500">Stock:</span> <span class="text-white">${data.inputs.current_stock}</span></div>
-                                <div><span class="text-slate-500">Lead Time:</span> <span class="text-white">${data.inputs.lead_time_days} days</span></div>
-                                <div><span class="text-slate-500">Service Level:</span> <span class="text-white">${data.inputs.service_level * 100}%</span></div>
-                            </div>
-                            <p class="text-xs text-slate-500 mt-3">Demand: [${data.inputs.demand_history.join(', ')}]</p>
-                        </div>
-                        <div class="bg-slate-800/50 rounded-xl p-4">
-                            <p class="text-xs text-emerald-400 font-medium uppercase tracking-wide mb-3">Calculations</p>
-                            <div class="space-y-3 text-sm font-mono">
-                                ${Object.entries(data.step_by_step).map(([k, v]) => `
-                                    <div class="p-3 bg-slate-900/50 rounded-lg">
-                                        <p class="text-slate-500 text-xs mb-1">${k.replace(/_/g, ' ').toUpperCase()}</p>
-                                        <p class="text-purple-300">${v.formula}</p>
-                                        ${v.calculation ? `<p class="text-slate-400 text-xs">= ${v.calculation}</p>` : ''}
-                                        <p class="text-white font-bold mt-1">${v.result} ${v.unit || ''}</p>
-                                    </div>
-                                `).join('')}
-                            </div>
-                        </div>
-                        <div class="rounded-xl p-4 ${data.decision.needs_restock ? 'bg-red-500/10 border border-red-500/20' : 'bg-emerald-500/10 border border-emerald-500/20'}">
-                            <p class="font-semibold ${data.decision.needs_restock ? 'text-red-400' : 'text-emerald-400'} mb-2">${data.decision.needs_restock ? '⚠️ Restock Required' : '✅ Stock Sufficient'}</p>
-                            <p class="text-sm text-slate-300">${data.decision.reason}</p>
-                            ${data.decision.needs_restock ? `<p class="text-sm mt-2"><span class="text-slate-500">Order:</span> <span class="text-white font-bold">${data.decision.order_quantity} units</span> • <span class="text-slate-500">Cost:</span> <span class="text-white font-bold">$${data.decision.estimated_cost.toLocaleString()}</span></p>` : ''}
-                        </div>
-                    </div>
-                `;
-            } catch (e) { content.innerHTML = '<p class="text-red-400 text-center py-8">Failed to load verification data. Please restart the server.</p>'; }
-            lucide.createIcons();
-        }
-
-        function closeVerification() { document.getElementById('verification-modal').classList.add('hidden'); }
-        async function approveOrder(id) { try { await fetchWithAuth(`/orders/${id}/approve`, { method: 'POST' }); showToast('Order approved', 'success'); refreshData(); } catch (e) { showToast('Failed', 'error'); } }
-        async function rejectOrder(id) { try { await fetchWithAuth(`/orders/${id}/reject`, { method: 'POST' }); showToast('Order rejected', 'info'); refreshData(); } catch (e) { showToast('Failed', 'error'); } }
-
-        refreshData();
-        loadTelegramSetup();
-        setInterval(refreshData, 30000);
+        // Check system status on load
+        fetch('/').then(r => r.json()).then(data => {
+            if (data.langgraph_enabled) {
+                console.log('LangGraph workflow enabled');
+            }
+        });
     </script>
 </body>
 

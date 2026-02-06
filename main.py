@@ -333,6 +333,27 @@ async def telegram_setup():
     return get_telegram_setup_info()
 
 
+@app.post("/telegram/webhook")
+async def telegram_webhook(request: Request):
+    """
+    Telegram webhook endpoint for receiving bot commands.
+    
+    Handles: /start, /status, /approve, /reject, /help
+    Also handles inline keyboard callbacks.
+    """
+    from utils.telegram import handle_telegram_update
+    
+    try:
+        update = await request.json()
+        logger.info("Received Telegram update", update_id=update.get("update_id"))
+        result = await handle_telegram_update(update)
+        return {"ok": True, "result": result}
+    except Exception as e:
+        logger.error("Telegram webhook error", error=str(e))
+        return {"ok": False, "error": str(e)}
+
+
+
 @app.post("/inventory-trigger", response_model=InventoryResponse)
 @limiter.limit(RATE_LIMITS["inventory_trigger"])
 async def inventory_trigger(
