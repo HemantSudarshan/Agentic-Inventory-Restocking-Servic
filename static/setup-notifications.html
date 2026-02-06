@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Setup Notifications - Inventory Agent</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    fontFamily: { sans: ['Inter', 'sans-serif'] },
+                    colors: {
+                        primary: { 50: '#fff7ed', 100: '#ffedd5', 400: '#fb923c', 500: '#ff8c00', 600: '#ff6600', 700: '#ea580c' },
+                        surface: { 50: '#1a1a1a', 100: '#141414', 800: '#0f0f0f', 900: '#0a0a0a' }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background: linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #0f0f0f 100%);
+            min-height: 100vh;
+        }
+
+        .card {
+            background: linear-gradient(145deg, rgba(20, 20, 20, 0.95), rgba(10, 10, 10, 0.98));
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 140, 0, 0.12);
+        }
+
+        .notification-card {
+            background: linear-gradient(135deg, rgba(255, 140, 0, 0.05), rgba(255, 102, 0, 0.02));
+            border: 1px solid rgba(255, 140, 0, 0.15);
+            transition: all 0.3s ease;
+        }
+
+        .notification-card:hover {
+            border-color: rgba(255, 140, 0, 0.3);
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(255, 140, 0, 0.1);
+        }
+
+        .notification-card.connected {
+            border-color: rgba(16, 185, 129, 0.4);
+            background: linear-gradient(135deg, rgba(16, 185, 129, 0.08), rgba(16, 185, 129, 0.02));
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #ff8c00, #ff6600);
+            transition: all 0.3s ease;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 40px rgba(255, 140, 0, 0.35);
+        }
+
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 140, 0, 0.2);
+            transition: all 0.3s ease;
+        }
+
+        .btn-secondary:hover {
+            border-color: rgba(255, 140, 0, 0.4);
+            background: rgba(255, 255, 255, 0.08);
+        }
+
+        .glow-orange {
+            box-shadow: 0 0 30px rgba(255, 140, 0, 0.2);
+        }
+
+        .qr-container {
+            background: white;
+            padding: 12px;
+            border-radius: 12px;
+            display: inline-block;
+        }
+
+        .step-indicator {
+            width: 32px;
+            height: 32px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .step-active {
+            background: linear-gradient(135deg, #ff8c00, #ff6600);
+            color: white;
+        }
+
+        .step-completed {
+            background: #10b981;
+            color: white;
+        }
+
+        .step-pending {
+            background: rgba(255, 255, 255, 0.1);
+            color: rgba(255, 255, 255, 0.4);
+        }
+
+        input[type="text"] {
+            background: rgba(255, 255, 255, 0.05);
+            border: 1px solid rgba(255, 140, 0, 0.2);
+            border-radius: 12px;
+            color: white;
+            transition: all 0.3s ease;
+        }
+
+        input[type="text"]:focus {
+            outline: none;
+            border-color: #ff8c00;
+            box-shadow: 0 0 0 4px rgba(255, 140, 0, 0.15);
+        }
+
+        input[type="text"]::placeholder {
+            color: rgba(255, 255, 255, 0.3);
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.5s ease-out;
+        }
+
+        .pulse-dot {
+            animation: pulse 2s infinite;
+        }
+
+        @keyframes pulse {
+            0%, 100% { opacity: 1; }
+            50% { opacity: 0.5; }
+        }
+    </style>
+</head>
+
+<body class="text-slate-200">
+    <div class="min-h-screen flex flex-col items-center justify-center px-6 py-12">
+        <!-- Header -->
+        <div class="text-center mb-10 animate-fade-in">
+            <div class="bg-gradient-to-r from-orange-500 to-orange-600 p-4 rounded-2xl inline-block mb-6 glow-orange">
+                <i data-lucide="bell-ring" class="h-10 w-10 text-white"></i>
+            </div>
+            <h1 class="text-3xl font-bold text-white mb-3">Set Up Notifications</h1>
+            <p class="text-slate-400 max-w-md mx-auto">
+                Get real-time alerts when inventory orders need your attention. You can always change these settings later.
+            </p>
+        </div>
+
+        <!-- Main Card -->
+        <div class="card rounded-3xl p-8 w-full max-w-2xl animate-fade-in">
+            <!-- Telegram Section -->
+            <div class="notification-card rounded-2xl p-6 mb-6" id="telegram-card">
+                <div class="flex items-start gap-4">
+                    <div class="p-3 bg-blue-500/20 rounded-xl">
+                        <svg class="h-8 w-8 text-blue-400" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M11.944 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0a12 12 0 0 0-.056 0zm4.962 7.224c.1-.002.321.023.465.14a.506.506 0 0 1 .171.325c.016.093.036.306.02.472-.18 1.898-.962 6.502-1.36 8.627-.168.9-.499 1.201-.82 1.23-.696.065-1.225-.46-1.9-.902-1.056-.693-1.653-1.124-2.678-1.8-1.185-.78-.417-1.21.258-1.91.177-.184 3.247-2.977 3.307-3.23.007-.032.014-.15-.056-.212s-.174-.041-.249-.024c-.106.024-1.793 1.14-5.061 3.345-.48.33-.913.49-1.302.48-.428-.008-1.252-.241-1.865-.44-.752-.245-1.349-.374-1.297-.789.027-.216.325-.437.893-.663 3.498-1.524 5.83-2.529 6.998-3.014 3.332-1.386 4.025-1.627 4.476-1.635z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg font-semibold text-white">Telegram Bot</h3>
+                            <span id="telegram-status" class="text-xs px-3 py-1 rounded-full bg-slate-700 text-slate-400">
+                                Not Connected
+                            </span>
+                        </div>
+                        <p class="text-sm text-slate-400 mb-4">
+                            Scan the QR code with your phone to connect the Inventory Agent bot.
+                        </p>
+                        
+                        <!-- QR Code Area -->
+                        <div id="qr-area" class="flex flex-col md:flex-row items-center gap-6">
+                            <div class="qr-container">
+                                <img id="telegram-qr" src="" alt="Telegram QR Code" class="w-40 h-40" 
+                                     onerror="this.src='data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 width=%22160%22 height=%22160%22><rect fill=%22%23eee%22 width=%22160%22 height=%22160%22/><text x=%2250%%22 y=%2250%%22 fill=%22%23999%22 font-size=%2212%22 text-anchor=%22middle%22 dy=%22.3em%22>QR Loading...</text></svg>'">
+                            </div>
+                            <div class="text-center md:text-left">
+                                <p class="text-sm text-slate-300 mb-2">Or open this link:</p>
+                                <a id="telegram-link" href="#" target="_blank" 
+                                   class="text-blue-400 hover:text-blue-300 text-sm underline break-all">
+                                    Loading...
+                                </a>
+                                <div class="mt-4">
+                                    <button id="telegram-connected-btn" 
+                                            class="btn-secondary px-4 py-2 rounded-xl text-sm text-white flex items-center gap-2">
+                                        <i data-lucide="check-circle" class="h-4 w-4"></i>
+                                        I've Connected
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Slack Section -->
+            <div class="notification-card rounded-2xl p-6 mb-6" id="slack-card">
+                <div class="flex items-start gap-4">
+                    <div class="p-3 bg-purple-500/20 rounded-xl">
+                        <svg class="h-8 w-8 text-purple-400" viewBox="0 0 24 24" fill="currentColor">
+                            <path d="M5.042 15.165a2.528 2.528 0 0 1-2.52 2.523A2.528 2.528 0 0 1 0 15.165a2.527 2.527 0 0 1 2.522-2.52h2.52v2.52zM6.313 15.165a2.527 2.527 0 0 1 2.521-2.52 2.527 2.527 0 0 1 2.521 2.52v6.313A2.528 2.528 0 0 1 8.834 24a2.528 2.528 0 0 1-2.521-2.522v-6.313zM8.834 5.042a2.528 2.528 0 0 1-2.521-2.52A2.528 2.528 0 0 1 8.834 0a2.528 2.528 0 0 1 2.521 2.522v2.52H8.834zM8.834 6.313a2.528 2.528 0 0 1 2.521 2.521 2.528 2.528 0 0 1-2.521 2.521H2.522A2.528 2.528 0 0 1 0 8.834a2.528 2.528 0 0 1 2.522-2.521h6.312zM18.956 8.834a2.528 2.528 0 0 1 2.522-2.521A2.528 2.528 0 0 1 24 8.834a2.528 2.528 0 0 1-2.522 2.521h-2.522V8.834zM17.688 8.834a2.528 2.528 0 0 1-2.523 2.521 2.527 2.527 0 0 1-2.52-2.521V2.522A2.527 2.527 0 0 1 15.165 0a2.528 2.528 0 0 1 2.523 2.522v6.312zM15.165 18.956a2.528 2.528 0 0 1 2.523 2.522A2.528 2.528 0 0 1 15.165 24a2.527 2.527 0 0 1-2.52-2.522v-2.522h2.52zM15.165 17.688a2.527 2.527 0 0 1-2.52-2.523 2.526 2.526 0 0 1 2.52-2.52h6.313A2.527 2.527 0 0 1 24 15.165a2.528 2.528 0 0 1-2.522 2.523h-6.313z"/>
+                        </svg>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg font-semibold text-white">Slack Webhook</h3>
+                            <span class="text-xs text-slate-500">Optional</span>
+                        </div>
+                        <p class="text-sm text-slate-400 mb-4">
+                            Enter your Slack webhook URL to receive notifications in a channel.
+                        </p>
+                        <input type="text" id="slack-webhook" 
+                               placeholder="https://hooks.slack.com/services/..."
+                               class="w-full px-4 py-3 text-sm">
+                        <a href="https://api.slack.com/messaging/webhooks" target="_blank" 
+                           class="text-xs text-orange-400 hover:text-orange-300 mt-2 inline-block">
+                            How to create a webhook →
+                        </a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Email Section (Coming Soon) -->
+            <div class="notification-card rounded-2xl p-6 mb-8 opacity-50" id="email-card">
+                <div class="flex items-start gap-4">
+                    <div class="p-3 bg-emerald-500/20 rounded-xl">
+                        <i data-lucide="mail" class="h-8 w-8 text-emerald-400"></i>
+                    </div>
+                    <div class="flex-1">
+                        <div class="flex items-center justify-between mb-2">
+                            <h3 class="text-lg font-semibold text-white">Email Notifications</h3>
+                            <span class="text-xs px-3 py-1 rounded-full bg-slate-700 text-slate-400">
+                                Coming Soon
+                            </span>
+                        </div>
+                        <p class="text-sm text-slate-400">
+                            Google Auth integration for email notifications is in development.
+                        </p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="flex flex-col sm:flex-row gap-4">
+                <button id="complete-btn" 
+                        class="btn-primary flex-1 px-6 py-4 rounded-xl text-white font-semibold flex items-center justify-center gap-2">
+                    <i data-lucide="arrow-right" class="h-5 w-5"></i>
+                    Continue to Dashboard
+                </button>
+                <button id="skip-btn" 
+                        class="btn-secondary flex-1 px-6 py-4 rounded-xl text-slate-300 font-medium flex items-center justify-center gap-2">
+                    Skip for now
+                </button>
+            </div>
+        </div>
+
+        <!-- Footer -->
+        <p class="text-slate-500 text-sm mt-8 animate-fade-in">
+            You can always update notification settings in the dashboard later.
+        </p>
+    </div>
+
+    <script>
+        // Initialize Lucide icons
+        lucide.createIcons();
+
+        // State
+        let telegramConnected = false;
+
+        // Load Telegram setup info
+        async function loadTelegramSetup() {
+            try {
+                const response = await fetch('/telegram/setup');
+                const data = await response.json();
+                
+                document.getElementById('telegram-qr').src = data.qr_url || '';
+                document.getElementById('telegram-link').href = data.bot_link || '#';
+                document.getElementById('telegram-link').textContent = data.bot_link || 'Not available';
+                
+                if (data.configured) {
+                    markTelegramConnected();
+                }
+            } catch (error) {
+                console.error('Failed to load Telegram setup:', error);
+                document.getElementById('telegram-link').textContent = 'Setup not available';
+            }
+        }
+
+        // Mark Telegram as connected
+        function markTelegramConnected() {
+            telegramConnected = true;
+            const card = document.getElementById('telegram-card');
+            const status = document.getElementById('telegram-status');
+            
+            card.classList.add('connected');
+            status.className = 'text-xs px-3 py-1 rounded-full bg-emerald-900/30 text-emerald-400';
+            status.innerHTML = '<span class="inline-block w-2 h-2 bg-emerald-400 rounded-full mr-1 pulse-dot"></span>Connected';
+        }
+
+        // Event Listeners
+        document.getElementById('telegram-connected-btn').addEventListener('click', () => {
+            markTelegramConnected();
+        });
+
+        document.getElementById('complete-btn').addEventListener('click', async () => {
+            const slackWebhook = document.getElementById('slack-webhook').value.trim();
+            
+            // Save settings via POST
+            try {
+                await fetch('/setup-notifications/save', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        telegram_connected: telegramConnected,
+                        slack_webhook: slackWebhook
+                    })
+                });
+            } catch (e) {
+                console.log('Settings save failed, proceeding anyway');
+            }
+            
+            window.location.href = '/dashboard';
+        });
+
+        document.getElementById('skip-btn').addEventListener('click', async () => {
+            try {
+                await fetch('/setup-notifications/skip', { method: 'POST' });
+            } catch (e) {
+                console.log('Skip request failed, proceeding anyway');
+            }
+            window.location.href = '/dashboard';
+        });
+
+        // Initialize
+        loadTelegramSetup();
+    </script>
+</body>
+
+</html>

@@ -220,17 +220,17 @@
                         <label class="block text-sm text-slate-400 mb-2">Select Product</label>
                         <select id="product-select"
                             class="w-full bg-surface-800 border border-orange-900/20 rounded-xl px-4 py-3 text-white focus:border-orange-500 focus:outline-none">
-                            <option value="STEEL_SHEETS">STEEL_SHEETS (Rising Demand)</option>
-                            <option value="LEGACY_PARTS">LEGACY_PARTS (Falling Demand)</option>
-                            <option value="HOLIDAY_PACKAGING">HOLIDAY_PACKAGING (Seasonal)</option>
-                            <option value="ELECTRONIC_COMPONENTS">ELECTRONIC_COMPONENTS (Volatile)</option>
-                            <option value="OFFICE_SUPPLIES">OFFICE_SUPPLIES (Stable)</option>
-                            <option value="ALUMINUM_BARS">ALUMINUM_BARS</option>
-                            <option value="COPPER_WIRE">COPPER_WIRE</option>
-                            <option value="PLASTIC_PELLETS">PLASTIC_PELLETS</option>
-                            <option value="TITANIUM_RODS">TITANIUM_RODS</option>
-                            <option value="RUBBER_SHEETS">RUBBER_SHEETS</option>
-                            <option value="CARBON_FIBER">CARBON_FIBER</option>
+                            <option value="STEEL_SHEETS">Steel Sheets</option>
+                            <option value="ALUMINUM_BARS">Aluminum Bars</option>
+                            <option value="COPPER_WIRE">Copper Wire</option>
+                            <option value="PLASTIC_PELLETS">Plastic Pellets</option>
+                            <option value="TITANIUM_RODS">Titanium Rods</option>
+                            <option value="RUBBER_SHEETS">Rubber Sheets</option>
+                            <option value="LEGACY_PARTS">Legacy Parts</option>
+                            <option value="ELECTRONIC_COMPONENTS">Electronic Components</option>
+                            <option value="HOLIDAY_PACKAGING">Holiday Packaging</option>
+                            <option value="OFFICE_SUPPLIES">Office Supplies</option>
+                            <option value="CARBON_FIBER">Carbon Fiber</option>
                         </select>
                     </div>
                     <div class="flex items-end">
@@ -369,10 +369,10 @@
         // Initialize Lucide icons
         lucide.createIcons();
 
-        // Get API key from localStorage or prompt
+        // Get API key from localStorage or use the default from .env
         let apiKey = localStorage.getItem('api_key');
         if (!apiKey) {
-            apiKey = 'test-api-key-123'; // Default for demo
+            apiKey = 'dev-inventory-agent-2026'; // Default from .env
             localStorage.setItem('api_key', apiKey);
         }
 
@@ -408,13 +408,13 @@
                 resultArea.classList.remove('hidden');
                 document.getElementById('result-product').textContent = data.product_id || product;
                 document.getElementById('result-confidence').textContent =
-                    data.confidence ? `${Math.round(data.confidence * 100)}%` : '--';
+                    data.confidence_score ? `${Math.round(data.confidence_score * 100)}%` : '--';
                 document.getElementById('result-quantity').textContent =
-                    data.quantity?.toLocaleString() || '--';
+                    data.recommended_quantity?.toLocaleString() || '--';
                 document.getElementById('result-safety').textContent =
                     data.safety_stock?.toFixed(0) || '--';
                 document.getElementById('result-cost').textContent =
-                    data.estimated_cost ? `$${data.estimated_cost.toLocaleString()}` : '--';
+                    data.order?.cost ? `$${data.order.cost.toLocaleString()}` : '--';
                 document.getElementById('result-reasoning').textContent =
                     data.reasoning || 'No reasoning provided';
 
@@ -423,17 +423,21 @@
                 if (data.status === 'executed') {
                     statusEl.className = 'px-3 py-1 rounded-full text-xs font-medium bg-emerald-900/30 text-emerald-400';
                     statusEl.textContent = '✓ Executed';
-                } else if (data.status === 'pending') {
+                } else if (data.status === 'pending_review') {
                     statusEl.className = 'px-3 py-1 rounded-full text-xs font-medium bg-yellow-900/30 text-yellow-400';
-                    statusEl.textContent = '⏳ Pending';
+                    statusEl.textContent = '⏳ Pending Review';
                 } else {
                     statusEl.className = 'px-3 py-1 rounded-full text-xs font-medium bg-blue-900/30 text-blue-400';
                     statusEl.textContent = data.status || 'Unknown';
                 }
 
-                // Add to orders list
+                // Add to orders list with correct field mappings
                 orders.unshift({
-                    ...data,
+                    product_id: data.product_id || product,
+                    quantity: data.recommended_quantity,
+                    confidence: data.confidence_score,
+                    status: data.status,
+                    reasoning: data.reasoning,
                     time: new Date().toLocaleTimeString()
                 });
                 updateOrdersTable();

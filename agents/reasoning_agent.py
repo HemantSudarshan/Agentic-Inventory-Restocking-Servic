@@ -55,10 +55,10 @@ class LLMProvider:
     def primary(self):
         """Lazy-load Gemini (primary LLM)."""
         if self._primary_llm is None:
-            api_key = os.getenv("GOOGLE_API_KEY")
+            api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
             if api_key:
                 self._primary_llm = ChatGoogleGenerativeAI(
-                    model="gemini-2.0-flash-exp",
+                    model="gemini-pro",
                     google_api_key=api_key,
                     temperature=0.3
                 )
@@ -216,7 +216,7 @@ class ReasoningAgent:
         llm_chain = self.llm_provider.get_llm_chain()
         
         if not llm_chain:
-            raise ValueError("No LLM providers configured. Check GOOGLE_API_KEY or GROQ_API_KEY.")
+            raise ValueError("No LLM providers configured. Check GOOGLE_API_KEY/GEMINI_API_KEY or GROQ_API_KEY.")
         
         last_error = None
         for llm_name, llm in llm_chain:
@@ -236,8 +236,8 @@ class ReasoningAgent:
 async def analyze_with_gemini(context: Dict[str, Any]) -> Dict[str, Any]:
     """Direct Gemini call (for testing)."""
     llm = ChatGoogleGenerativeAI(
-        model="gemini-2.0-flash-exp",
-        google_api_key=os.getenv("GOOGLE_API_KEY"),
+        model="gemini-pro",
+        google_api_key=os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"),
         temperature=0.3
     )
     prompt = RESTOCK_PROMPT.format(**context)

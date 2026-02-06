@@ -176,6 +176,10 @@ async def root():
 # Authentication Endpoints
 # ============================================================
 
+# Track which sessions have completed notification setup
+SETUP_COMPLETED: Dict[str, bool] = {}
+
+
 @app.get("/login")
 async def login_page():
     """Serve the login page."""
@@ -189,11 +193,14 @@ async def authenticate(
     """
     Authenticate user and set session cookie.
     Default password: admin123 (set DASHBOARD_PASSWORD env var to change)
+    Redirects to notification setup on first login.
     """
     if sha256(password.encode()).hexdigest() == sha256(DASHBOARD_PASSWORD.encode()).hexdigest():
         token = secrets.token_urlsafe(32)
         SESSION_TOKENS[token] = "authenticated"
-        response = RedirectResponse(url="/dashboard", status_code=303)
+        
+        # Redirect to setup page for first-time login
+        response = RedirectResponse(url="/setup-notifications", status_code=303)
         response.set_cookie("session", token, httponly=True)
         return response
     raise HTTPException(status_code=401, detail="Invalid password")
@@ -205,6 +212,66 @@ async def logout():
     response = RedirectResponse(url="/login", status_code=303)
     response.delete_cookie("session")
     return response
+
+
+@app.get("/setup-notifications")
+async def setup_notifications_page(session: str = Cookie(None)):
+    """
+    Serve the notification setup page.
+    Shown after first login to configure Telegram/Slack notifications.
+    """
+    if not session or session not in SESSION_TOKENS:
+        return RedirectResponse(url="/login")
+    
+    # If already completed setup, redirect to dashboard
+    if SETUP_COMPLETED.get(session, False):
+        return RedirectResponse(url="/dashboard")
+    
+    return FileResponse("static/setup-notifications.html")
+
+
+@app.post("/setup-notifications/save")
+async def save_notification_settings(
+    request: Request,
+    session: str = Cookie(None)
+):
+    """
+    Save notification preferences and mark setup as complete.
+    """
+    if not session or session not in SESSION_TOKENS:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    try:
+        data = await request.json()
+        telegram_connected = data.get("telegram_connected", False)
+        slack_webhook = data.get("slack_webhook", "")
+        
+        # Log the setup completion
+        logger.info("Notification setup completed",
+                   telegram=telegram_connected,
+                   slack_configured=bool(slack_webhook))
+        
+        # Mark setup as complete for this session
+        SETUP_COMPLETED[session] = True
+        
+        return {"status": "saved", "telegram": telegram_connected, "slack": bool(slack_webhook)}
+    except Exception as e:
+        logger.error(f"Failed to save notification settings: {e}")
+        SETUP_COMPLETED[session] = True  # Still mark as complete
+        return {"status": "skipped"}
+
+
+@app.post("/setup-notifications/skip")
+async def skip_notification_setup(session: str = Cookie(None)):
+    """
+    Skip notification setup and proceed to dashboard.
+    """
+    if not session or session not in SESSION_TOKENS:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+    
+    SETUP_COMPLETED[session] = True
+    logger.info("Notification setup skipped")
+    return {"status": "skipped"}
 
 
 @app.get("/dashboard")

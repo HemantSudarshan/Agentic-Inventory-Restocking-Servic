@@ -20,6 +20,7 @@ logger = structlog.get_logger()
 TELEGRAM_BOT_TOKEN = os.getenv("TELEGRAM_BOT_TOKEN")
 TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 TELEGRAM_API_BASE = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}" if TELEGRAM_BOT_TOKEN else None
+DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:8000")
 
 # Store registered chat IDs (in production, use database)
 registered_chats: Dict[str, Dict[str, Any]] = {}
@@ -29,10 +30,16 @@ registered_chats: Dict[str, Dict[str, Any]] = {}
 
 async def send_telegram_notification(order_data: Dict[str, Any]) -> bool:
     """
-    Send order notification to Telegram with rich formatting.
+    Send order notification to ALL registered Telegram users.
+    No .env editing needed - users just scan QR and start bot.
     """
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
-        logger.warning("Telegram not configured - skipping notification")
+    if not TELEGRAM_BOT_TOKEN:
+        logger.warning("Telegram bot token not configured - skipping notification")
+        return False
+    
+    # If no users registered yet, check if fallback TELEGRAM_CHAT_ID is set
+    if not registered_chats and not TELEGRAM_CHAT_ID:
+        logger.warning("No Telegram users registered yet")
         return False
     
     try:
@@ -64,7 +71,7 @@ _{order_data.get('reasoning', 'No details')[:200]}..._
         # Add inline keyboard for pending orders
         keyboard = None
         if status == "pending":
-            order_id = order_data.get('order_id', '')[:20]
+            order_id = order_data.get('order_id', '')[:50]
             keyboard = {
                 "inline_keyboard": [[
                     {"text": "✅ Approve", "callback_data": f"approve_{order_id}"},
@@ -72,7 +79,16 @@ _{order_data.get('reasoning', 'No details')[:200]}..._
                 ]]
             }
         
-        return await _send_message(TELEGRAM_CHAT_ID, message, keyboard)
+        # Broadcast to all registered users
+        success_count = 0
+        recipients = list(registered_chats.keys()) if registered_chats else [TELEGRAM_CHAT_ID]
+        
+        for chat_id in recipients:
+            if await _send_message(chat_id, message, keyboard):
+                success_count += 1
+        
+        logger.info(f"Telegram notification sent to {success_count}/{len(recipients)} users")
+        return success_count > 0
         
     except Exception as e:
         logger.error("Failed to send Telegram notification", error=str(e))
@@ -81,24 +97,33 @@ _{order_data.get('reasoning', 'No details')[:200]}..._
 
 async def send_telegram_low_confidence_alert(order_data: Dict[str, Any]) -> bool:
     """
-    Send urgent alert for low-confidence orders requiring human review.
+    Send low-confidence order alert to ALL registered users requiring approval.
     """
-    if not TELEGRAM_BOT_TOKEN or not TELEGRAM_CHAT_ID:
+    if not TELEGRAM_BOT_TOKEN:
+        return False
+    
+    if not registered_chats and not TELEGRAM_CHAT_ID:
+        logger.warning("No Telegram users registered yet")
         return False
     
     try:
-        order_id = order_data.get('order_id', '')[:20]
+        order_id = order_data.get('order_id', '')[:50]
         
         message = f"""
 🚨 *APPROVAL REQUIRED*
 
-A low-confidence order needs your review:
+📦 *Material:* {order_data.get('product_id', 'Unknown')}
+📊 *Quantity:* {order_data.get('quantity', 0):,} units
+🔴 *Confidence:* {int(order_data.get('confidence', 0) * 100)}% (Below threshold)
 
-📦 {order_data.get('product_id')}
-📊 Qty: {order_data.get('quantity', 0):,} units
-🔴 Confidence: {int(order_data.get('confidence', 0) * 100)}%
+💰 *Est. Cost:* ${order_data.get('estimated_cost', 0):,.2f}
 
-⚡ *Action:* Use buttons below or visit dashboard
+📝 *AI Reasoning:*
+_{order_data.get('reasoning', 'No reasoning')[:150]}_
+
+⚠️ This order requires manual approval due to low AI confidence.
+
+🆔 Order: `{order_id}`
 """
         
         keyboard = {
@@ -106,11 +131,20 @@ A low-confidence order needs your review:
                 {"text": "✅ Approve", "callback_data": f"approve_{order_id}"},
                 {"text": "❌ Reject", "callback_data": f"reject_{order_id}"}
             ], [
-                {"text": "📊 View Dashboard", "url": "http://localhost:8000/dashboard"}
+                {"text": "📊 View Dashboard", "url": f"{DASHBOARD_URL}/dashboard"}
             ]]
         }
         
-        return await _send_message(TELEGRAM_CHAT_ID, message, keyboard)
+        # Broadcast to all registered users
+        success_count = 0
+        recipients = list(registered_chats.keys()) if registered_chats else [TELEGRAM_CHAT_ID]
+        
+        for chat_id in recipients:
+            if await _send_message(chat_id, message, keyboard):
+                success_count += 1
+        
+        logger.info(f"Low-confidence alert sent to {success_count}/{len(recipients)} users")
+        return success_count > 0
             
     except Exception as e:
         logger.error("Failed to send Telegram alert", error=str(e))
@@ -189,8 +223,9 @@ async def _handle_start(chat_id: str, user_name: str) -> Dict[str, Any]:
     message = f"""
 👋 *Welcome, {user_name}!*
 
-You're now registered for Inventory Agent notifications.
+You're now registered for Inventory Agent notifications!
 
+✅ *Auto-Registered* - No configuration needed
 🔔 *Your Chat ID:* `{chat_id}`
 
 *Available Commands:*
@@ -199,22 +234,24 @@ You're now registered for Inventory Agent notifications.
 • /reject `<order_id>` - Reject pending order
 • /help - Show this help
 
-💡 Add this Chat ID to your `.env` file:
-`TELEGRAM_CHAT_ID={chat_id}`
+📊 *Dashboard:* {DASHBOARD_URL}/dashboard
+
+🎉 You'll now receive all inventory alerts automatically!
 """
     
     await _send_message(chat_id, message)
+    logger.info(f"New user registered: {user_name} (chat_id: {chat_id})")
     return {"status": "registered", "chat_id": chat_id}
 
 
 async def _handle_status(chat_id: str) -> Dict[str, Any]:
     """Handle /status command - show pending orders."""
-    message = """
+    message = f"""
 📊 *Inventory Agent Status*
 
 🟢 Service: Running
 📦 Mode: Mock Data
-🔗 Dashboard: http://localhost:8000/dashboard
+🔗 Dashboard: {DASHBOARD_URL}/dashboard
 
 To check pending orders, visit the dashboard or use:
 `POST /orders?status=pending`
@@ -288,7 +325,7 @@ async def _handle_callback(callback: Dict[str, Any]) -> Dict[str, Any]:
 
 async def _handle_help(chat_id: str) -> Dict[str, Any]:
     """Handle /help command."""
-    message = """
+    message = f"""
 🤖 *Inventory Agent Bot*
 
 *Commands:*
@@ -304,7 +341,7 @@ async def _handle_help(chat_id: str) -> Dict[str, Any]:
 • 🔴 Low confidence need approval
 
 *Dashboard:*
-http://localhost:8000/dashboard
+{DASHBOARD_URL}/dashboard
 """
     
     await _send_message(chat_id, message)
