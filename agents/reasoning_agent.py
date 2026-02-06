@@ -115,10 +115,9 @@ class ReasoningAgent:
         """
         import re
         
-        # Remove markdown code blocks (case-insensitive)
+        # Remove markdown code blocks (case-insensitive, handles any language tag)
         content = content.strip()
-        content = re.sub(r'```(?:json|JSON)?', '', content)
-        content = content.strip()
+        content = re.sub(r'```[a-zA-Z]*\s*', '', content, flags=re.IGNORECASE)
         
         # Find JSON object (handles text before/after JSON)
         start = content.find("{")

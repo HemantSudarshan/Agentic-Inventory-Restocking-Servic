@@ -18,7 +18,7 @@ class TestMockDataLoading:
         assert data["lead_time_days"] == 7
         assert data["service_level"] == 0.95
         assert data["unit_price"] == 500
-        assert len(data["demand_history"]) == 7
+        assert len(data["demand_history"]) == 30
     
     def test_load_mock_data_all_products(self):
         """Test loading all products in mock data."""

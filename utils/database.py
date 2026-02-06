@@ -15,6 +15,9 @@ DB_PATH = Path(__file__).parent.parent / "data" / "inventory.db"
 
 async def init_database():
     """Initialize database tables if they don't exist."""
+    # Ensure data directory exists
+    DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    
     async with aiosqlite.connect(DB_PATH) as db:
         # Orders table
         await db.execute("""

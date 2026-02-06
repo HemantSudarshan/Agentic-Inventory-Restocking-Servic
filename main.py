@@ -7,16 +7,23 @@ Phase 2 Enhancements:
 - Database persistence
 - Dashboard UI
 - Webhook callbacks
+
+Phase 4 Enhancements:
+- LangGraph StateGraph workflow (PS.md compliance)
+- Dashboard session-based authentication
+- Enhanced agent tracing
 """
 
 import os
 import asyncio
+import secrets
 from typing import Dict, Any, List, Optional
 from contextlib import asynccontextmanager
+from hashlib import sha256
 
-from fastapi import FastAPI, HTTPException, Security, Depends, Request
+from fastapi import FastAPI, HTTPException, Security, Depends, Request, Cookie, Form
 from fastapi.security.api_key import APIKeyHeader
-from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse
+from fastapi.responses import PlainTextResponse, HTMLResponse, FileResponse, RedirectResponse
 from fastapi.staticfiles import StaticFiles
 from prometheus_client import generate_latest, CONTENT_TYPE_LATEST
 from dotenv import load_dotenv
@@ -95,6 +102,19 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 # Initialize reasoning agent (singleton)
 reasoning_agent = ReasoningAgent()
 
+# Dashboard Authentication
+DASHBOARD_PASSWORD = os.getenv("DASHBOARD_PASSWORD", "admin123")
+SESSION_TOKENS: Dict[str, str] = {}
+
+# Import LangGraph workflow
+try:
+    from workflow.graph import run_inventory_analysis
+    LANGGRAPH_AVAILABLE = True
+    logger.info("LangGraph workflow initialized successfully")
+except ImportError as e:
+    LANGGRAPH_AVAILABLE = False
+    logger.warning(f"LangGraph not available: {e}")
+
 # Security: API Key Header
 API_KEY_NAME = "X-API-Key"
 api_key_header = APIKeyHeader(name=API_KEY_NAME, auto_error=False)
@@ -147,13 +167,54 @@ async def root():
     return {
         "service": "Agentic Inventory Restocking Service",
         "status": "running",
-        "version": "2.0.0"
+        "version": "2.0.0",
+        "langgraph_enabled": LANGGRAPH_AVAILABLE
     }
 
 
+# ============================================================
+# Authentication Endpoints
+# ============================================================
+
+@app.get("/login")
+async def login_page():
+    """Serve the login page."""
+    return FileResponse("static/login.html")
+
+
+@app.post("/auth/login")
+async def authenticate(
+    password: str = Form(...),
+):
+    """
+    Authenticate user and set session cookie.
+    Default password: admin123 (set DASHBOARD_PASSWORD env var to change)
+    """
+    if sha256(password.encode()).hexdigest() == sha256(DASHBOARD_PASSWORD.encode()).hexdigest():
+        token = secrets.token_urlsafe(32)
+        SESSION_TOKENS[token] = "authenticated"
+        response = RedirectResponse(url="/dashboard", status_code=303)
+        response.set_cookie("session", token, httponly=True)
+        return response
+    raise HTTPException(status_code=401, detail="Invalid password")
+
+
+@app.get("/auth/logout")
+async def logout():
+    """Clear session and redirect to login."""
+    response = RedirectResponse(url="/login", status_code=303)
+    response.delete_cookie("session")
+    return response
+
+
 @app.get("/dashboard")
-async def dashboard():
-    """Serve the dashboard UI."""
+async def dashboard(session: str = Cookie(None)):
+    """
+    Serve the dashboard UI.
+    Requires valid session cookie (obtained via /auth/login).
+    """
+    if not session or session not in SESSION_TOKENS:
+        return RedirectResponse(url="/login")
     return FileResponse("static/dashboard.html")
 
 
