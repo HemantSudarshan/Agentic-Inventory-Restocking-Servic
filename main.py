@@ -59,6 +59,7 @@ from utils.database import (
     log_audit_event,
     get_dashboard_stats
 )
+from utils.mongodb import connect_mongodb, close_mongodb
 
 # Load environment variables
 load_dotenv()
@@ -72,12 +73,14 @@ logger = get_logger(__name__)
 async def lifespan(app: FastAPI):
     """Application lifespan - startup and shutdown events."""
     # Startup
-    logger.info("Initializing database...")
-    await init_database()
+    logger.info("Initializing databases...")
+    await init_database()  # SQLite fallback
+    await connect_mongodb()  # MongoDB Atlas (if configured)
     logger.info("Application startup complete")
     yield
     # Shutdown
-    logger.info("Application shutdown")
+   logger.info("Application shutdown")
+    await close_mongodb()
 
 
 # Initialize FastAPI app
