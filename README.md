@@ -8,12 +8,39 @@
 [![FastAPI](https://img.shields.io/badge/FastAPI-0.109+-green.svg)](https://fastapi.tiangolo.com/)
 [![LangGraph](https://img.shields.io/badge/LangGraph-Enabled-orange.svg)](https://github.com/langchain-ai/langgraph)
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-success.svg)](https://www.mongodb.com/cloud/atlas)
-[![CI/CD](https://github.com/HemantSudarshan/Agentic-Inventory-Restocking-Service/actions/workflows/ci.yml/badge.svg)](https://github.com/HemantSudarshan/Agentic-Inventory-Restocking-Service/actions)
+
+[![CI/CD Pipeline](https://github.com/HemantSudarshan/Agentic-Inventory-Restocking-Service/actions/workflows/ci.yml/badge.svg)](https://github.com/HemantSudarshan/Agentic-Inventory-Restocking-Service/actions)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[Features](#-key-features) • [Architecture](#-system-architecture) • [Quick Start](#-quick-start) • [API Docs](#-api-reference) • [Live Demo](https://agentic-inventory-restocking-servic-production.up.railway.app/login)
+[Features](#-key-features) • [Architecture](#-system-architecture) • [Screenshots](#-screenshots) • [Quick Start](#-quick-start) • [Live Demo](https://agentic-inventory-restocking-servic-production.up.railway.app/login)
 
 </div>
+
+---
+
+## 📸 Screenshots
+
+<div align="center">
+
+### 🖥️ Dashboard UI
+<img src="UI/Agent UI.png" alt="Dashboard UI" width="800"/>
+
+### 🔐 Authentication
+<img src="UI/auth.png" alt="Login Page" width="800"/>
+
+### 📱 Telegram Integration
+<img src="UI/Telegram Integration.png" alt="Telegram Bot Setup" width="600"/>
+
+### 💬 Telegram Notifications
+<p float="left">
+  <img src="UI/Telegram SC.png" alt="Telegram Notification" width="400"/>
+  <img src="UI/Telegram SC2.png" alt="Telegram Approval" width="400"/>
+</p>
+
+</div>
+
+---
+
 
 ---
 
