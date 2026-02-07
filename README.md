@@ -69,7 +69,7 @@ This implementation fulfills all requirements from `PS.md`:
 |----------------------|----------------|---------|
 | **Backend** | FastAPI | RESTful API with authentication, health checks, and Swagger docs |
 | **AI Orchestration** | LangGraph | State-based workflow with conditional routing and error handling |
-| **AI Model** | Gemini 2.5 Flash + Llama 3.1 | Primary (Gemini) and backup (Groq/Llama) for cost efficiency |
+| **AI Model** | Gemini 2.0 Flash + Llama 3.3 | Primary (Gemini) and backup (Groq/Llama) for cost efficiency |
 | **Data Source** | CSV + SQLite | Mock ERP data stored in CSV files; SQLite for order persistence |
 
 ### Architecture Diagram
@@ -100,8 +100,8 @@ flowchart TB
     end
 
     subgraph AI ["AI Providers"]
-        Gemini["Google Gemini<br>gemini-1.5-flash"]
-        Groq["Groq Llama<br>llama-3.1-8b-instant"]
+        Gemini["Google Gemini<br>gemini-2.0-flash"]
+        Groq["Groq Llama<br>llama-3.3-70b-versatile"]
     end
 
     subgraph Notify ["Notifications"]
@@ -156,7 +156,7 @@ The LangGraph workflow implements the three-step agentic flow specified in `PS.m
 - **Input**: Stock levels, demand history, shortage metrics
 - **AI Task**: Determine if low stock is a genuine crisis or declining demand
 - **Output**: Recommended action (`restock` or `transfer`), quantity, confidence score (0-1), reasoning
-- **Model**: Gemini 1.5 Flash (primary), Llama 3.1-8b (fallback)
+- **Model**: Gemini 2.0 Flash (primary), Llama 3.3-70b (fallback)
 
 **Example AI Reasoning**:
 ```
@@ -188,8 +188,8 @@ restocking of 1200 units to cover: shortage (1005) + lead-time demand (1050)
 
 1. Clone the repository:
 ```bash
-git clone https://github.com/HemantSudarshan/Agentic-Inventory-Restocking-Servic.git
-cd Agentic-Inventory-Restocking-Servic
+git clone https://github.com/HemantSudarshan/Agentic-Inventory-Restocking-Service.git
+cd Agentic-Inventory-Restocking-Service
 ```
 
 2. Install dependencies:
@@ -413,12 +413,12 @@ Deploy to any container platform (AWS ECS, Google Cloud Run, Azure Container Ins
 The system supports automatic failover between LLM providers:
 
 **Primary (Gemini)**:
-- Model: `gemini-1.5-flash`
+- Model: `gemini-2.0-flash`
 - Use case: Best reasoning quality, fast inference
 - Cost: Free tier: 1500 requests/day
 
 **Backup (Groq/Llama)**:
-- Model: `llama-3.1-8b-instant`
+- Model: `llama-3.3-70b-versatile`
 - Use case: Fallback when Gemini is unavailable
 - Cost: Free tier: unlimited requests (rate limited)
 
