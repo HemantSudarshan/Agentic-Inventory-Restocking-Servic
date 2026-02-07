@@ -171,8 +171,9 @@
             <h1 class="text-3xl font-bold text-white mb-3">Set Up Notifications</h1>
             <p class="text-slate-400 max-w-md mx-auto">
                 Get real-time alerts when inventory orders need your attention.
-                <span class="text-orange-400 font-medium">In production, this will be mandatory</span>, but for this MVP
-                demo, it's optional.
+                <span class="text-orange-400 font-medium">In production, this will be mandatory to access
+                    dashboard</span>,
+                but for this MVP demo it is functional but optional for convenience.
                 <br><br>
                 <span class="text-slate-500 text-sm italic">↓ Scroll down to continue ↓</span>
             </p>
@@ -338,6 +339,14 @@
         document.getElementById('complete-btn').addEventListener('click', async () => {
             const slackWebhook = document.getElementById('slack-webhook').value.trim();
 
+            // Show warning if Telegram not connected
+            if (!telegramConnected) {
+                const proceed = confirm('You have not set up Telegram notifications yet.\n\nIn production, this would be required. For this demo, you can skip it.\n\nClick OK to continue without Telegram, or Cancel to set it up.');
+                if (!proceed) {
+                    return; // Stay on page to set up Telegram
+                }
+            }
+
             // Save settings via POST
             try {
                 await fetch('/setup-notifications/save', {
@@ -352,7 +361,9 @@
                 console.log('Settings save failed, proceeding anyway');
             }
 
-            window.location.href = '/dashboard';
+            // Replace history to prevent back navigation to this page after proceeding
+            window.history.replaceState(null, null, window.location.href);
+            window.location.replace('/dashboard');
         });
 
         document.getElementById('skip-btn').addEventListener('click', async () => {
@@ -361,7 +372,9 @@
             } catch (e) {
                 console.log('Skip request failed, proceeding anyway');
             }
-            window.location.href = '/dashboard';
+            // Replace history to prevent back navigation
+            window.history.replaceState(null, null, window.location.href);
+            window.location.replace('/dashboard');
         });
 
         // Initialize

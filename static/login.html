@@ -179,7 +179,7 @@
 
         <div class="footer">
             <p>AI-Powered Inventory Management</p>
-            <p class="version">v2.5.0 - Phase 5</p>
+            <p class="version">v2.5.0 - Live Demo</p>
         </div>
     </div>
 
@@ -200,8 +200,10 @@
                 });
 
                 if (response.ok || response.redirected) {
+                    // Replace history state so user can't go back to login after authenticating
+                    window.history.replaceState(null, null, window.location.href);
                     // Follow the server's redirect (to /setup-notifications or /dashboard)
-                    window.location.href = response.url || '/setup-notifications';
+                    window.location.replace(response.url || '/setup-notifications');
                 } else {
                     const data = await response.json();
                     errorEl.textContent = data.detail || 'Invalid password';

@@ -106,6 +106,7 @@
         .text-gradient {
             background: linear-gradient(135deg, #ff8c00, #ff6600);
             -webkit-background-clip: text;
+            background-clip: text;
             -webkit-text-fill-color: transparent;
         }
 
@@ -359,7 +360,7 @@
         <div class="max-w-7xl mx-auto px-6 py-6 text-center">
             <p class="text-slate-500 text-sm">
                 Agentic Inventory Restocking Service •
-                <span class="text-orange-400">Phase 5</span> •
+                <span class="text-orange-400">v2.5.0 - Live Demo</span> •
                 Built with LangGraph + FastAPI
             </p>
         </div>
@@ -370,7 +371,7 @@
         lucide.createIcons();
 
         // Fetch API key from server config (authenticated endpoint)
-        let apiKey = localStorage.getItem('api_key');
+        let apiKey = sessionStorage.getItem('api_key');
 
         // Fetch fresh API key from server on page load
         async function loadApiKey() {
@@ -381,23 +382,18 @@
                 if (response.ok) {
                     const config = await response.json();
                     apiKey = config.api_key;
-                    localStorage.setItem('api_key', apiKey);
+                    sessionStorage.setItem('api_key', apiKey);
                     console.log('✅ API key loaded from server');
                 } else {
-                    console.warn('⚠️ Could not fetch API key, using cached value');
-                    // Fallback to cached value if fetch fails
+                    console.warn('⚠️ Could not fetch API key from server');
+                    // Only use cached value, never expose hardcoded keys
                     if (!apiKey) {
-                        apiKey = 'dev-inventory-agent-2026'; // Last resort fallback
-                        localStorage.setItem('api_key', apiKey);
+                        console.error('No API key available - please refresh or re-login');
                     }
                 }
             } catch (error) {
                 console.error('Failed to load config:', error);
-                // Use cached value if available
-                if (!apiKey) {
-                    apiKey = 'dev-inventory-agent-2026';
-                    localStorage.setItem('api_key', apiKey);
-                }
+                // No fallback to hardcoded keys for security
             }
         }
 
@@ -483,6 +479,17 @@
             lucide.createIcons();
         });
 
+        // XSS protection - escape HTML in user-facing content
+        function escapeHtml(text) {
+            if (text == null) return '';
+            return String(text)
+                .replace(/&/g, "&amp;")
+                .replace(/</g, "&lt;")
+                .replace(/>/g, "&gt;")
+                .replace(/"/g, "&quot;")
+                .replace(/'/g, "&#039;");
+        }
+
         function updateOrdersTable() {
             const tbody = document.getElementById('orders-table');
             if (orders.length === 0) return;
@@ -490,7 +497,7 @@
             tbody.innerHTML = orders.slice(0, 10).map(order => `
                 <tr class="order-row">
                     <td class="px-6 py-4">
-                        <span class="font-medium text-white">${order.product_id || 'Unknown'}</span>
+                        <span class="font-medium text-white">${escapeHtml(order.product_id || 'Unknown')}</span>
                     </td>
                     <td class="px-6 py-4 text-slate-300">${order.quantity?.toLocaleString() || '-'}</td>
                     <td class="px-6 py-4">
@@ -504,10 +511,10 @@
                     </td>
                     <td class="px-6 py-4">
                         <span class="px-2 py-1 rounded-full text-xs font-medium ${getStatusClass(order.status)}">
-                            ${order.status || 'unknown'}
+                            ${escapeHtml(order.status || 'unknown')}
                         </span>
                     </td>
-                    <td class="px-6 py-4 text-slate-400 text-sm">${order.time || '-'}</td>
+                    <td class="px-6 py-4 text-slate-400 text-sm">${escapeHtml(order.time || '-')}</td>
                     <td class="px-6 py-4">
                         ${order.status === 'pending' ? `
                             <button class="text-emerald-400 hover:text-emerald-300 text-sm mr-3">Approve</button>
