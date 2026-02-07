@@ -384,6 +384,8 @@
                     apiKey = config.api_key;
                     sessionStorage.setItem('api_key', apiKey);
                     console.log('✅ API key loaded from server');
+                    // Load persisted orders after API key is available
+                    await loadOrders();
                 } else {
                     console.warn('⚠️ Could not fetch API key from server');
                     // Only use cached value, never expose hardcoded keys
@@ -544,6 +546,41 @@
 
             document.getElementById('executed-orders').textContent = executed;
             document.getElementById('pending-orders').textContent = pending;
+        }
+
+        // Load persisted orders from database on page load
+        async function loadOrders() {
+            try {
+                const response = await fetch('/orders?limit=10', {
+                    headers: {
+                        'X-API-Key': apiKey
+                    },
+                    credentials: 'include'
+                });
+
+                if (response.ok) {
+                    const data = await response.json();
+                    // Convert database format to display format
+                    orders = data.orders.map(order => ({
+                        product_id: order.product_id,
+                        quantity: order.quantity,
+                        confidence: order.confidence,
+                        status: order.status,
+                        reasoning: order.reasoning,
+                        time: new Date(order.created_at).toLocaleTimeString()
+                    }));
+                    updateOrdersTable();
+                    updateStats();
+                    console.log(`✅ Loaded ${orders.length} persisted orders from database`);
+                } else if (response.status === 403) {
+                    console.warn('⚠️ API key not loaded yet, will retry after key fetch');
+                    // Orders will load after API key is fetched
+                } else {
+                    console.warn('⚠️ Could not load orders:', response.statusText);
+                }
+            } catch (error) {
+                console.error('Failed to load orders:', error);
+            }
         }
 
         // Check system status on load
