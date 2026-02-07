@@ -58,7 +58,7 @@ class LLMProvider:
             api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
             if api_key:
                 self._primary_llm = ChatGoogleGenerativeAI(
-                    model="gemini-1.5-pro",
+                    model=os.getenv("GEMINI_MODEL", "gemini-1.5-pro"),
                     google_api_key=api_key,
                     temperature=0.3
                 )
@@ -71,7 +71,7 @@ class LLMProvider:
             api_key = os.getenv("GROQ_API_KEY")
             if api_key:
                 self._backup_llm = ChatGroq(
-                    model="llama-3.3-70b-versatile",
+                    model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
                     groq_api_key=api_key,
                     temperature=0.3
                 )
@@ -236,7 +236,7 @@ class ReasoningAgent:
 async def analyze_with_gemini(context: Dict[str, Any]) -> Dict[str, Any]:
     """Direct Gemini call (for testing)."""
     llm = ChatGoogleGenerativeAI(
-        model="gemini-1.5-pro",
+        model=os.getenv("GEMINI_MODEL", "gemini-1.5-pro"),
         google_api_key=os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY"),
         temperature=0.3
     )
@@ -251,7 +251,7 @@ async def analyze_with_gemini(context: Dict[str, Any]) -> Dict[str, Any]:
 async def analyze_with_groq(context: Dict[str, Any]) -> Dict[str, Any]:
     """Direct Groq call (for testing) - FREE!"""
     llm = ChatGroq(
-        model="llama-3.3-70b-versatile",
+        model=os.getenv("GROQ_MODEL", "llama-3.3-70b-versatile"),
         groq_api_key=os.getenv("GROQ_API_KEY"),
         temperature=0.3
     )
