@@ -369,12 +369,40 @@
         // Initialize Lucide icons
         lucide.createIcons();
 
-        // Get API key from localStorage or use the default from .env
+        // Fetch API key from server config (authenticated endpoint)
         let apiKey = localStorage.getItem('api_key');
-        if (!apiKey) {
-            apiKey = 'dev-inventory-agent-2026'; // Default from .env
-            localStorage.setItem('api_key', apiKey);
+        
+        // Fetch fresh API key from server on page load
+        async function loadApiKey() {
+            try {
+                const response = await fetch('/config', {
+                    credentials: 'include' // Include session cookie
+                });
+                if (response.ok) {
+                    const config = await response.json();
+                    apiKey = config.api_key;
+                    localStorage.setItem('api_key', apiKey);
+                    console.log('✅ API key loaded from server');
+                } else {
+                    console.warn('⚠️ Could not fetch API key, using cached value');
+                    // Fallback to cached value if fetch fails
+                    if (!apiKey) {
+                        apiKey = 'dev-inventory-agent-2026'; // Last resort fallback
+                        localStorage.setItem('api_key', apiKey);
+                    }
+                }
+            } catch (error) {
+                console.error('Failed to load config:', error);
+                // Use cached value if available
+                if (!apiKey) {
+                    apiKey = 'dev-inventory-agent-2026';
+                    localStorage.setItem('api_key', apiKey);
+                }
+            }
         }
+        
+        // Load API key immediately
+        loadApiKey();
 
         // Store orders locally
         let orders = [];
