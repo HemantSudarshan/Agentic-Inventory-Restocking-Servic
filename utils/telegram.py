@@ -134,23 +134,21 @@ async def send_telegram_low_confidence_alert(order_data: Dict[str, Any]) -> bool
         return False
     
     try:
-        order_id = order_data.get('order_id', '')[:50]
-        
-        message = f"""
-🚨 *APPROVAL REQUIRED*
+        order_id = order_data.get('order_id', 'unknown')[:50]
+        message = f"""🚨 APPROVAL REQUIRED
 
-📦 *Material:* {order_data.get('product_id', 'Unknown')}
-📊 *Quantity:* {order_data.get('quantity', 0):,} units
-🔴 *Confidence:* {int(order_data.get('confidence', 0) * 100)}% (Below threshold)
+📦 Material: {order_data.get('product_id', 'Unknown')}
+📊 Quantity: {order_data.get('quantity', 0):,} units
+🔴 Confidence: {int(order_data.get('confidence', 0) * 100)}% (Below threshold)
 
-💰 *Est. Cost:* ${order_data.get('estimated_cost', 0):,.2f}
+💰 Est. Cost: ${order_data.get('estimated_cost', 0):,.2f}
 
-📝 *AI Reasoning:*
-_{order_data.get('reasoning', 'No reasoning')[:150]}_
+📝 AI Reasoning:
+{order_data.get('reasoning', 'No reasoning')[:150]}
 
 ⚠️ This order requires manual approval due to low AI confidence.
 
-🆔 Order: `{order_id}`
+🆔 Order: {order_id}
 """
         
         keyboard = {
