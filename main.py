@@ -79,7 +79,7 @@ async def lifespan(app: FastAPI):
     logger.info("Application startup complete")
     yield
     # Shutdown
-   logger.info("Application shutdown")
+    logger.info("Application shutdown")
     await close_mongodb()
 
 
