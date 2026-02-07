@@ -74,6 +74,18 @@ async def send_telegram_notification(order_data: Dict[str, Any]) -> bool:
         conf_emoji = "🟢" if confidence >= 0.8 else ("🟡" if confidence >= 0.6 else "🔴")
         status_emoji = "✅" if status == "executed" else "⏳"
         
+        # Escape special characters for Telegram MarkdownV2
+        def escape_markdown(text: str) -> str:
+            """Escape special characters for Telegram's MarkdownV2."""
+            special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
+            for char in special_chars:
+                text = text.replace(char, f'\\{char}')
+            return text
+        
+        # Get and sanitize reasoning
+        reasoning = order_data.get('reasoning', 'No details provided')[:200]
+        reasoning_safe = escape_markdown(reasoning)
+        
         message = f"""
 {status_emoji} *Inventory Order Alert*
 
@@ -82,12 +94,12 @@ async def send_telegram_notification(order_data: Dict[str, Any]) -> bool:
 {conf_emoji} *Confidence:* {int(confidence * 100)}%
 📋 *Status:* {status.upper()}
 
-💰 *Est. Cost:* ${order_data.get('estimated_cost', 0):,.2f}
+💰 *Est\\. Cost:* ${order_data.get('estimated_cost', 0):,.2f}
 📉 *Shortage:* {order_data.get('shortage', 0):,.0f} units
 🎯 *Reorder Point:* {order_data.get('reorder_point', 0):,.0f}
 
 📝 *AI Reasoning:*
-_{order_data.get('reasoning', 'No details')[:200]}..._
+{reasoning_safe}
 
 🕐 Order ID: `{order_data.get('order_id', 'N/A')[:25]}`
 """
