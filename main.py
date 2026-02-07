@@ -176,13 +176,13 @@ async def root():
 
 
 @app.get("/config")
-async def get_config(session_token: Optional[str] = Cookie(None)):
+async def get_config(session: Optional[str] = Cookie(None)):
     """
     Serve configuration to dashboard (authenticated users only).
     Returns the API key needed for /inventory-trigger calls.
     """
     # Verify user is authenticated via session token
-    if not session_token or session_token not in SESSION_TOKENS:
+    if not session or session not in SESSION_TOKENS:
         raise HTTPException(status_code=401, detail="Not authenticated")
     
     return {
