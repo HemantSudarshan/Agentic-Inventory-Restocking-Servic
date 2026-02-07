@@ -10,6 +10,8 @@ Features:
 import os
 import httpx
 import asyncio
+import json
+from pathlib import Path
 from typing import Optional, Dict, Any, List
 import structlog
 from datetime import datetime
@@ -22,8 +24,30 @@ TELEGRAM_CHAT_ID = os.getenv("TELEGRAM_CHAT_ID")
 TELEGRAM_API_BASE = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}" if TELEGRAM_BOT_TOKEN else None
 DASHBOARD_URL = os.getenv("DASHBOARD_URL", "http://localhost:8000")
 
-# Store registered chat IDs (in production, use database)
-registered_chats: Dict[str, Dict[str, Any]] = {}
+# Persistent storage for registered chat IDs
+REGISTERED_CHATS_FILE = Path("data/telegram_users.json")
+
+def _load_registered_chats() -> Dict[str, Dict[str, Any]]:
+    """Load registered chats from persistent storage."""
+    if REGISTERED_CHATS_FILE.exists():
+        try:
+            with open(REGISTERED_CHATS_FILE, 'r') as f:
+                return json.load(f)
+        except Exception as e:
+            logger.error("Failed to load registered chats", error=str(e))
+    return {}
+
+def _save_registered_chats(chats: Dict[str, Dict[str, Any]]):
+    """Save registered chats to persistent storage."""
+    try:
+        REGISTERED_CHATS_FILE.parent.mkdir(parents=True, exist_ok=True)
+        with open(REGISTERED_CHATS_FILE, 'w') as f:
+            json.dump(chats, f, indent=2)
+    except Exception as e:
+        logger.error("Failed to save registered chats", error=str(e))
+
+# Load registered chats on module load
+registered_chats: Dict[str, Dict[str, Any]] = _load_registered_chats()
 
 
 # ==================== Outbound Notifications ====================
@@ -219,6 +243,8 @@ async def _handle_start(chat_id: str, user_name: str) -> Dict[str, Any]:
         "registered_at": datetime.now().isoformat(),
         "user_name": user_name
     }
+    # Persist to file immediately
+    _save_registered_chats(registered_chats)
     
     message = f"""
 👋 *Welcome, {user_name}!*
