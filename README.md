@@ -69,7 +69,7 @@ This implementation fulfills all requirements from `PS.md`:
 |----------------------|----------------|---------|
 | **Backend** | FastAPI | RESTful API with authentication, health checks, and Swagger docs |
 | **AI Orchestration** | LangGraph | State-based workflow with conditional routing and error handling |
-| **AI Model** | Gemini 2.0 Flash + Llama 3.3 | Primary (Gemini) and backup (Groq/Llama) for cost efficiency |
+| **AI Model** | Gemini 1.5 Flash + Llama 3.3 | Primary (Gemini) and backup (Groq/Llama) for cost efficiency |
 | **Data Source** | CSV + SQLite | Mock ERP data stored in CSV files; SQLite for order persistence |
 
 ### Architecture Diagram
@@ -100,7 +100,7 @@ flowchart TB
     end
 
     subgraph AI ["AI Providers"]
-        Gemini["Google Gemini<br>gemini-2.0-flash"]
+        Gemini["Google Gemini<br>gemini-1.5-flash"]
         Groq["Groq Llama<br>llama-3.3-70b-versatile"]
     end
 
@@ -156,7 +156,7 @@ The LangGraph workflow implements the three-step agentic flow specified in `PS.m
 - **Input**: Stock levels, demand history, shortage metrics
 - **AI Task**: Determine if low stock is a genuine crisis or declining demand
 - **Output**: Recommended action (`restock` or `transfer`), quantity, confidence score (0-1), reasoning
-- **Model**: Gemini 2.0 Flash (primary), Llama 3.3-70b (fallback)
+- **Model**: Gemini 1.5 Flash (primary), Llama 3.3-70b (fallback)
 
 **Example AI Reasoning**:
 ```
@@ -413,7 +413,7 @@ Deploy to any container platform (AWS ECS, Google Cloud Run, Azure Container Ins
 The system supports automatic failover between LLM providers:
 
 **Primary (Gemini)**:
-- Model: `gemini-2.0-flash`
+- Model: `gemini-1.5-flash`
 - Use case: Best reasoning quality, fast inference
 - Cost: Free tier: 1500 requests/day
 
