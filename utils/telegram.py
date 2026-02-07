@@ -183,8 +183,8 @@ async def _send_message(chat_id: str, text: str, reply_markup: Dict = None) -> b
         
     payload = {
         "chat_id": chat_id,
-        "text": text,
-        "parse_mode": "Markdown"
+        "text": text
+        # Removed parse_mode: Markdown to avoid 400 errors with special characters
     }
     
     if reply_markup:
@@ -334,18 +334,37 @@ PATCH /orders/{order_id}/status
 
 
 async def _handle_callback(callback: Dict[str, Any]) -> Dict[str, Any]:
-    """Handle inline button callbacks."""
+    """Handle inline button callbacks and update database."""
+    from utils.database import update_order_status
+    
     data = callback.get("data", "")
     chat_id = str(callback.get("message", {}).get("chat", {}).get("id", ""))
     
     if data.startswith("approve_"):
         order_id = data.replace("approve_", "")
-        await _send_message(chat_id, f"✅ Order `{order_id}` approved via button!")
-        return {"status": "approved", "order_id": order_id}
+        try:
+            # Update database status
+            await update_order_status(order_id, "approved")
+            await _send_message(chat_id, f"Order {order_id} has been APPROVED and marked for execution!")
+            logger.info(f"Order {order_id} approved via Telegram by chat {chat_id}")
+            return {"status": "approved", "order_id": order_id}
+        except Exception as e:
+            logger.error(f"Failed to approve order {order_id}", error=str(e))
+            await _send_message(chat_id, f"❌ Failed to approve order: {str(e)}")
+            return {"status": "error", "order_id": order_id, "error": str(e)}
+    
     elif data.startswith("reject_"):
         order_id = data.replace("reject_", "")
-        await _send_message(chat_id, f"❌ Order `{order_id}` rejected via button!")
-        return {"status": "rejected", "order_id": order_id}
+        try:
+            # Update database status
+            await update_order_status(order_id, "rejected")
+            await _send_message(chat_id, f"Order {order_id} has been REJECTED.")
+            logger.info(f"Order {order_id} rejected via Telegram by chat {chat_id}")
+            return {"status": "rejected", "order_id": order_id}
+        except Exception as e:
+            logger.error(f"Failed to reject order {order_id}", error=str(e))
+            await _send_message(chat_id, f"❌ Failed to reject order: {str(e)}")
+            return {"status": "error", "order_id": order_id, "error": str(e)}
     
     return {"status": "unknown_callback"}
 
