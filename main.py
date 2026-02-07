@@ -96,7 +96,7 @@ app.state.limiter = limiter
 app.add_exception_handler(RateLimitExceeded, rate_limit_exceeded_handler)
 
 # Configurable business logic thresholds
-CONFIDENCE_THRESHOLD = float(os.getenv("AUTO_EXECUTE_THRESHOLD", "0.6"))
+CONFIDENCE_THRESHOLD = float(os.getenv("AUTO_EXECUTE_THRESHOLD", "0.95"))
 logger.info(f"Auto-execute confidence threshold: {CONFIDENCE_THRESHOLD}")
 
 # Mount static files for dashboard
