@@ -44,7 +44,7 @@ The primary AI model for inventory reasoning.
 |--------|-------|
 | **Purpose** | AI reasoning for inventory decisions |
 | **Cost** | FREE (1,500 requests/day) |
-| **Model Used** | gemini-1.5-flash |
+| **Model Used** | gemini-1.5-pro |
 | **Sign Up** | https://aistudio.google.com/app/apikey |
 
 **Setup Steps:**
@@ -185,7 +185,7 @@ No setup required - works out of the box.
 3. Add your IP to whitelist (or use `0.0.0.0/0` for any IP)
 4. Create database user with password
 5. Get connection string
-6. Add to `.env` as `MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/inventory`
+6. Add to `.env` as `MONGODB_URI=mongodb+srv://<YOUR_USER>:<YOUR_PASSWORD>@<YOUR_CLUSTER>.mongodb.net/inventory`
 
 **Integration Code Required:** You would need to add `pymongo` to requirements and modify the data layer.
 
@@ -361,7 +361,7 @@ METRICS_PORT=9090
 # ============================================
 
 # MongoDB
-# MONGODB_URI=mongodb+srv://user:pass@cluster.mongodb.net/inventory
+# MONGODB_URI=mongodb+srv://<YOUR_USER>:<YOUR_PASSWORD>@<YOUR_CLUSTER>.mongodb.net/inventory
 
 # PostgreSQL (Supabase/Neon)
 # DATABASE_URL=postgres://user:pass@host:5432/inventory
