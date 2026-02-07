@@ -70,38 +70,29 @@ async def send_telegram_notification(order_data: Dict[str, Any]) -> bool:
         confidence = order_data.get("confidence", 0)
         status = order_data.get("status", "unknown")
         
-        # Confidence indicator
+        # Confidence indicator  
         conf_emoji = "🟢" if confidence >= 0.8 else ("🟡" if confidence >= 0.6 else "🔴")
         status_emoji = "✅" if status == "executed" else "⏳"
         
-        # Escape special characters for Telegram MarkdownV2
-        def escape_markdown(text: str) -> str:
-            """Escape special characters for Telegram's MarkdownV2."""
-            special_chars = ['_', '*', '[', ']', '(', ')', '~', '`', '>', '#', '+', '-', '=', '|', '{', '}', '.', '!']
-            for char in special_chars:
-                text = text.replace(char, f'\\{char}')
-            return text
-        
-        # Get and sanitize reasoning
+        # Get reasoning (plain text, no special escaping needed)
         reasoning = order_data.get('reasoning', 'No details provided')[:200]
-        reasoning_safe = escape_markdown(reasoning)
         
-        message = f"""
-{status_emoji} *Inventory Order Alert*
+        # Plain text message (no Markdown formatting to avoid parsing issues)
+        message = f"""{status_emoji} Inventory Order Alert
 
-📦 *Material:* {order_data.get('product_id', 'Unknown')}
-📊 *Units Needed:* {order_data.get('quantity', 0):,}
-{conf_emoji} *Confidence:* {int(confidence * 100)}%
-📋 *Status:* {status.upper()}
+📦 Material: {order_data.get('product_id', 'Unknown')}
+📊 Units Needed: {order_data.get('quantity', 0):,}
+{conf_emoji} Confidence: {int(confidence * 100)}%
+📋 Status: {status.upper()}
 
-💰 *Est\\. Cost:* ${order_data.get('estimated_cost', 0):,.2f}
-📉 *Shortage:* {order_data.get('shortage', 0):,.0f} units
-🎯 *Reorder Point:* {order_data.get('reorder_point', 0):,.0f}
+💰 Est. Cost: ${order_data.get('estimated_cost', 0):,.2f}
+📉 Shortage: {order_data.get('shortage', 0):,.0f} units
+🎯 Reorder Point: {order_data.get('reorder_point', 0):,.0f}
 
-📝 *AI Reasoning:*
-{reasoning_safe}
+📝 AI Reasoning:
+{reasoning}
 
-🕐 Order ID: `{order_data.get('order_id', 'N/A')[:25]}`
+🕐 Order ID: {order_data.get('order_id', 'N/A')[:25]}
 """
         
         # Add inline keyboard for pending orders
