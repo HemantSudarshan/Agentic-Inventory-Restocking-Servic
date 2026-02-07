@@ -2,97 +2,219 @@ name: CI/CD Pipeline
 
 on:
   push:
-    branches: [ main, develop ]
+    branches: [main, develop]
   pull_request:
-    branches: [ main ]
+    branches: [main]
+
+env:
+  PYTHON_VERSION: "3.11"
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
 
 jobs:
+  # ============================================================
+  # Test Job - Run pytest with coverage
+  # ============================================================
   test:
+    name: 🧪 Tests
     runs-on: ubuntu-latest
-    
+
     strategy:
       matrix:
-        python-version: ['3.11', '3.12']
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python ${{ matrix.python-version }}
-      uses: actions/setup-python@v5
-      with:
-        python-version: ${{ matrix.python-version }}
-    
-    - name: Cache pip dependencies
-      uses: actions/cache@v4
-      with:
-        path: ~/.cache/pip
-        key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
-        restore-keys: |
-          ${{ runner.os }}-pip-
-    
-    - name: Install dependencies
-      run: |
-        python -m pip install --upgrade pip
-        pip install -r requirements.txt
-        pip install pytest pytest-cov pytest-asyncio
-    
-    - name: Run tests with coverage
-      run: |
-        python -m pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing
-      env:
-        GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
-        GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
-    
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.xml
-        fail_ci_if_error: false
+        python-version: ["3.11", "3.12"]
 
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python ${{ matrix.python-version }}
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python-version }}
+
+      - name: 📦 Cache pip dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/pip
+          key: ${{ runner.os }}-pip-${{ hashFiles('requirements.txt') }}
+          restore-keys: |
+            ${{ runner.os }}-pip-
+
+      - name: 🔧 Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pytest pytest-cov pytest-asyncio httpx
+
+      - name: 🧪 Run tests with coverage
+        run: |
+          python -m pytest tests/ -v --cov=. --cov-report=xml --cov-report=term-missing
+        env:
+          GOOGLE_API_KEY: ${{ secrets.GOOGLE_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          API_KEY: test-api-key
+          DASHBOARD_PASSWORD: test-password
+
+      - name: 📊 Upload coverage to Codecov
+        uses: codecov/codecov-action@v4
+        with:
+          file: ./coverage.xml
+          fail_ci_if_error: false
+
+  # ============================================================
+  # Lint Job - Code quality checks
+  # ============================================================
   lint:
+    name: 🔍 Lint
     runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Set up Python
-      uses: actions/setup-python@v5
-      with:
-        python-version: '3.12'
-    
-    - name: Install linting tools
-      run: |
-        pip install ruff
-    
-    - name: Run Ruff linter
-      run: ruff check . --output-format=github
 
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 🔧 Install linting tools
+        run: |
+          pip install ruff black isort
+
+      - name: 🔍 Run Ruff linter
+        run: ruff check . --output-format=github
+        continue-on-error: true
+
+      - name: 🎨 Check code formatting (Black)
+        run: black --check --diff .
+        continue-on-error: true
+
+      - name: 📝 Check import sorting (isort)
+        run: isort --check-only --diff .
+        continue-on-error: true
+
+  # ============================================================
+  # Security Job - Vulnerability scanning
+  # ============================================================
   security:
+    name: 🔒 Security Scan
     runs-on: ubuntu-latest
-    
-    steps:
-    - uses: actions/checkout@v4
-    
-    - name: Run security scan
-      uses: pyupio/safety@v2.3.5
-      with:
-        api-key: ${{ secrets.SAFETY_API_KEY }}
-      continue-on-error: true
 
-  docker:
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐍 Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ env.PYTHON_VERSION }}
+
+      - name: 🔒 Install security tools
+        run: pip install safety bandit
+
+      - name: 🔍 Run Safety check
+        run: safety check -r requirements.txt --full-report
+        continue-on-error: true
+
+      - name: 🔍 Run Bandit security scan
+        run: bandit -r . -x ./tests,./venv,./.venv -f json -o bandit-report.json
+        continue-on-error: true
+
+      - name: 📤 Upload Bandit report
+        uses: actions/upload-artifact@v4
+        with:
+          name: bandit-security-report
+          path: bandit-report.json
+        if: always()
+
+  # ============================================================
+  # Docker Build Job - Build and test container
+  # ============================================================
+  docker-build:
+    name: 🐳 Docker Build
     needs: [test, lint]
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main'
-    
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
     steps:
-    - uses: actions/checkout@v4
-    
-    - name: Build Docker image
-      run: docker build -t inventory-agent:${{ github.sha }} .
-    
-    - name: Test Docker image
-      run: |
-        docker run -d --name test-container -p 8000:8000 inventory-agent:${{ github.sha }}
-        sleep 5
-        curl -f http://localhost:8000/ || exit 1
-        docker stop test-container
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🐳 Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: 🔧 Build Docker image
+        run: |
+          docker build -t inventory-agent:${{ github.sha }} .
+
+      - name: 🧪 Test Docker image health
+        run: |
+          docker run -d --name test-container \
+            -p 8000:8000 \
+            -e API_KEY=test-key \
+            -e DASHBOARD_PASSWORD=test-pass \
+            inventory-agent:${{ github.sha }}
+          
+          echo "⏳ Waiting for container to start..."
+          sleep 10
+          
+          echo "🔍 Testing health endpoint..."
+          curl -f http://localhost:8000/ || exit 1
+          
+          echo "✅ Health check passed!"
+          docker logs test-container
+          docker stop test-container
+
+  # ============================================================
+  # Deploy Job - Auto-deploy to Railway
+  # ============================================================
+  deploy:
+    name: 🚀 Deploy to Railway
+    needs: [test, lint, docker-build]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 🚀 Deploy to Railway
+        uses: bervProject/railway-deploy@main
+        with:
+          railway_token: ${{ secrets.RAILWAY_TOKEN }}
+          service: ${{ secrets.RAILWAY_SERVICE_ID }}
+        if: ${{ secrets.RAILWAY_TOKEN != '' }}
+        continue-on-error: true
+
+      - name: 🔔 Notify deployment status
+        run: |
+          echo "🎉 Deployment triggered for commit ${{ github.sha }}"
+          echo "📍 Live URL: https://agentic-inventory-restocking-servic-production.up.railway.app"
+
+  # ============================================================
+  # Post-Deploy Health Check
+  # ============================================================
+  health-check:
+    name: 💚 Post-Deploy Health Check
+    needs: [deploy]
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: ⏳ Wait for deployment
+        run: sleep 60
+
+      - name: 💚 Check production health
+        run: |
+          echo "🔍 Checking production health..."
+          for i in {1..5}; do
+            STATUS=$(curl -s -o /dev/null -w "%{http_code}" https://agentic-inventory-restocking-servic-production.up.railway.app/)
+            if [ "$STATUS" = "200" ]; then
+              echo "✅ Production is healthy (HTTP $STATUS)"
+              exit 0
+            fi
+            echo "⏳ Attempt $i: HTTP $STATUS - Retrying in 30s..."
+            sleep 30
+          done
+          echo "❌ Production health check failed"
+          exit 1

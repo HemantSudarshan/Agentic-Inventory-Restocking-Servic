@@ -1,0 +1,50 @@
+# Git
+.git
+.gitignore
+
+# Python
+__pycache__
+*.py[cod]
+*$py.class
+*.so
+.Python
+.venv
+venv
+ENV
+.pytest_cache
+.coverage
+coverage.xml
+htmlcov/
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode
+.idea
+*.swp
+*.swo
+
+# Environment
+.env
+.env.local
+*.env
+
+# Logs
+logs/
+*.log
+
+# Test data (if any)
+tests/__pycache__
+
+# Docs and non-essential files
+*.md
+!README.md
+Context Logs/
+Docs/
+Evaluated Research/
+Problem Statemen and Imp docs/
+Final Evlation before proceeding/
+
+# Database files (regenerated)
+data/inventory.db
