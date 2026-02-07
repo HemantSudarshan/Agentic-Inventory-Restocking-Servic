@@ -296,7 +296,7 @@
                     </div>
                     <div class="flex justify-between items-center p-3 bg-surface-800/50 rounded-xl">
                         <span class="text-slate-400 text-sm">Threshold</span>
-                        <span class="text-orange-400 font-medium">60%</span>
+                        <span class="text-orange-400 font-medium">95%</span>
                     </div>
                     <div class="flex justify-between items-center p-3 bg-surface-800/50 rounded-xl">
                         <span class="text-slate-400 text-sm">Data Mode</span>
@@ -371,7 +371,7 @@
 
         // Fetch API key from server config (authenticated endpoint)
         let apiKey = localStorage.getItem('api_key');
-        
+
         // Fetch fresh API key from server on page load
         async function loadApiKey() {
             try {
@@ -400,7 +400,7 @@
                 }
             }
         }
-        
+
         // Load API key immediately
         loadApiKey();
 
@@ -543,6 +543,17 @@
         fetch('/').then(r => r.json()).then(data => {
             if (data.langgraph_enabled) {
                 console.log('LangGraph workflow enabled');
+            }
+        });
+
+        // Prevent accidental back navigation to login after authentication
+        window.history.pushState(null, null, window.location.pathname);
+        window.addEventListener('popstate', function (event) {
+            const confirmLeave = confirm('Are you sure you want to leave the dashboard? You will be logged out.');
+            if (confirmLeave) {
+                window.location.href = '/auth/logout';
+            } else {
+                window.history.pushState(null, null, window.location.pathname);
             }
         });
     </script>
