@@ -10,7 +10,7 @@
 [![MongoDB](https://img.shields.io/badge/MongoDB-Atlas-success.svg)](https://www.mongodb.com/cloud/atlas)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
-[Features](#-key-features) • [Architecture](#-system-architecture) • [Quick Start](#-quick-start) • [API Docs](#-api-reference) • [Deployment](#-deployment)
+[Features](#-key-features) • [Architecture](#-system-architecture) • [Quick Start](#-quick-start) • [API Docs](#-api-reference) • [Live Demo](https://agentic-inventory-restocking-servic-production.up.railway.app/login)
 
 </div>
 
@@ -66,10 +66,10 @@ graph LR
     B -.->|Recommendation,<br/>Confidence,<br/>Reasoning| C
     C -.->|Purchase Order or<br/>Transfer Order| D[📦 Execution]
     
-    style A fill:#e1f5ff
-    style B fill:#fff4e1
-    style C fill:#e8f5e8
-    style D fill:#f3e5f5
+    style A fill:#4A90E2,stroke:#2E5C8A,stroke-width:2px,color:#fff
+    style B fill:#F5A623,stroke:#C17D11,stroke-width:2px,color:#fff
+    style C fill:#7ED321,stroke:#5FA119,stroke-width:2px,color:#fff
+    style D fill:#BD10E0,stroke:#8B0AA8,stroke-width:2px,color:#fff
 ```
 
 ---
@@ -165,10 +165,12 @@ flowchart TB
     ActionNode --> SlackHook
     ActionNode --> MongoDB
     
-    style Workflow fill:#fff4e1
-    style AI fill:#e1f5ff
-    style Data fill:#e8f5e8
-    style Notify fill:#ffe1f5
+    style Workflow fill:#F5A623,stroke:#C17D11,stroke-width:2px
+    style AI fill:#4A90E2,stroke:#2E5C8A,stroke-width:2px
+    style Data fill:#7ED321,stroke:#5FA119,stroke-width:2px
+    style Notify fill:#BD10E0,stroke:#8B0AA8,stroke-width:2px
+    style Client fill:#50E3C2,stroke:#3AAA94,stroke-width:2px
+    style Backend fill:#F8E71C,stroke:#C4B616,stroke-width:2px
 ```
 
 ### 🔄 Request Flow Diagram
@@ -222,38 +224,6 @@ sequenceDiagram
 ## 📐 Safety Stock Calculations
 
 The system uses industry-standard inventory management formulas to calculate optimal reorder points:
-
-### Core Formulas
-
-```mermaid
-graph TD
-    A[📊 Historical Demand Data] --> B[Calculate Average Demand μ]
-    A --> C[Calculate Std Deviation σ]
-    D[Service Level 95%] --> E[Z-Score = 1.65]
-    
-    B --> F[Avg Demand per Day]
-    C --> G[Demand Variability]
-    E --> H[Safety Buffer Multiplier]
-    
-    F --> I[Lead Time Demand<br/>μ × L]
-    G --> J[Safety Stock<br/>Z × σ × √L]
-    H --> J
-    
-    I --> K[Reorder Point ROP]
-    J --> K
-    
-    K --> L{Current Stock < ROP?}
-    L -->|Yes| M[Shortage = ROP - Stock]
-    L -->|No| N[No Action Needed]
-    
-    M --> O[AI Analyzes Demand Trend]
-    O --> P[Recommend Quantity]
-    
-    style A fill:#e1f5ff
-    style K fill:#fff4e1
-    style O fill:#ffe1f5
-    style P fill:#e8f5e8
-```
 
 ### Mathematical Formulas
 
