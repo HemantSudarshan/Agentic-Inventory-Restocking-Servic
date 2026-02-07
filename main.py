@@ -534,6 +534,7 @@ async def inventory_trigger(
         context = {
             "product_id": data["product_id"],
             "current_stock": current_stock,
+            "warehouse_b_stock": data.get("warehouse_b_stock", 0),
             "safety_stock": safety_stock,
             "reorder_point": reorder_point,
             "shortage": shortage,

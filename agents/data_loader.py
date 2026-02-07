@@ -83,5 +83,6 @@ def load_mock_data(product_id: str) -> Dict[str, Any]:
         "demand_history": product_demand,
         "lead_time_days": int(product_inv["lead_time_days"]),
         "service_level": float(product_inv["service_level"]),
-        "unit_price": float(product_inv.get("unit_price", 100))
+        "unit_price": float(product_inv.get("unit_price", 100)),
+        "warehouse_b_stock": int(product_inv.get("warehouse_b_stock", 0))
     }

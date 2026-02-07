@@ -17,28 +17,39 @@ RESTOCK_PROMPT = """You are an inventory management AI agent. Analyze the follow
 
 ## Current Status:
 - Product: {product_id}
-- Current Stock: {current_stock} units
+- Current Warehouse (A): {current_stock} units
+- Other Warehouse (B): {warehouse_b_stock} units
 - Safety Stock: {safety_stock:.0f} units
 - Reorder Point: {reorder_point:.0f} units
 - Shortage: {shortage:.0f} units below ROP
 - Average Daily Demand: {avg_demand:.0f} units
-- Lead Time: {lead_time_days} days
+- Lead Time: Lead time: {lead_time_days} days purchase, 1-2 days transfer
 
 ## Demand Trend (last 7 days):
 {demand_history}
 
-## Your Task:
-1. Analyze if restocking is needed
-2. Recommend: "restock" (purchase order) or "transfer" (from other warehouse)
-3. Calculate optimal quantity to order
-4. Provide confidence score (0.0 to 1.0)
+## Decision Rules:
+1. **Use "transfer"** if:
+   - Warehouse B has surplus stock (>200 units available)
+   - Shortage is moderate (<500 units)
+   - This is faster and costs nothing
+
+2. **Use "restock"** if:
+   - Warehouse B has low/no stock
+   - Emergency shortage (>500 units OR critical stockout)
+   - Need large quantity that Warehouse B can't provide
+
+3. **Confidence scoring**:
+   - High (>0.90): Clear shortage + demand data supports action
+   - Medium (0.70-0.90): Some uncertainty in demand trend
+   - Low (<0.70): Declining demand or unclear situation
 
 ## Response Format (JSON only, no markdown):
 {{
     "action": "restock" or "transfer",
     "quantity": <number>,
     "confidence": <0.0-1.0>,
-    "reasoning": "<brief explanation>"
+    "reasoning": "<brief explanation including why transfer/restock was chosen>"
 }}
 """
 
