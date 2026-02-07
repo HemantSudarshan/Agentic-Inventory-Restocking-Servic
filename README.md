@@ -114,13 +114,16 @@ graph LR
 - 📱 **Telegram Bot**: Real-time alerts with inline Approve/Reject buttons
 - 💬 **Slack Integration**: Webhook-based notifications for team channels
 - 🌐 **Web Dashboard**: Real-time order monitoring and approval interface
+- ⚠️ **MVP Demo**: Notifications optional for convenience, mandatory in production
 
 ### Production-Ready Infrastructure
 - 🔐 **Authentication**: Password-protected dashboard + API key validation
+- 🛡️ **Security Hardening**: XSS protection, sessionStorage for keys, no hardcoded secrets
 - 🗄️ **MongoDB Atlas**: Persistent cloud database with automatic failover
 - 📊 **LangSmith Tracing**: Full observability of all AI calls and decisions
 - ⚡ **Auto-Failover**: Gemini → Groq backup for 99.9% uptime
 - 🔄 **Rate Limiting**: Prevents API abuse and quota exhaustion
+- ⚙️ **Configurable Models**: Change AI models via environment variables without code changes
 
 ---
 
@@ -320,9 +323,10 @@ The AI analyzes demand patterns and determines:
 ```
 
 **Model Strategy**:
-- **Primary**: Gemini 1.5 Pro (1500 req/day free)
-- **Fallback**: Groq Llama 3.3 70B (unlimited)
+- **Primary**: Gemini 1.5 Pro (configurable via `GEMINI_MODEL` env var)
+- **Fallback**: Groq Llama 3.3 70B (configurable via `GROQ_MODEL` env var)
 - **Automatic failover** on quota exhaustion or errors
+- **Model flexibility**: Switch models without code changes for testing or production optimization
 
 ### Step C: Action Generation
 **File**: `agents/action_agent.py`
@@ -401,6 +405,10 @@ Edit `.env` and set:
 ```env
 # Required: AI Model
 GOOGLE_API_KEY=your-gemini-api-key    # Get from https://aistudio.google.com/app/apikey
+
+# Optional: Model Configuration (override default models)
+GEMINI_MODEL=gemini-1.5-pro           # Default: gemini-1.5-pro (can test gemini-1.5-flash)
+GROQ_MODEL=llama-3.3-70b-versatile    # Default: llama-3.3-70b-versatile
 
 # Required: API Security
 API_KEY=your-secure-api-key           # Generate: openssl rand -hex 32
@@ -610,6 +618,8 @@ docker run -p 8000:8000 --env-file .env inventory-agent
 | `DASHBOARD_PASSWORD` | No | `admin123` | Dashboard login password |
 | `GROQ_API_KEY` | No | - | Groq backup LLM |
 | `LLM_PROVIDER` | No | `auto` | `primary`, `backup`, or `auto` |
+| `GEMINI_MODEL` | No | `gemini-1.5-pro` | Gemini model version (e.g., `gemini-1.5-flash`) |
+| `GROQ_MODEL` | No | `llama-3.3-70b-versatile` | Groq model version |
 | `AUTO_EXECUTE_THRESHOLD` | No | `0.95` | Confidence threshold (0.0-1.0) |
 | `MONGODB_URI` | No | - | MongoDB Atlas connection |
 | `TELEGRAM_BOT_TOKEN` | No | - | Telegram bot token |
