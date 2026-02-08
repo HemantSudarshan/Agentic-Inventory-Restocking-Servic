@@ -590,6 +590,20 @@
             }
         });
 
+        // Manual refresh button
+        document.getElementById('refresh-btn').addEventListener('click', async () => {
+            console.log('⟳ Manual refresh triggered');
+            await loadOrders();
+        });
+
+        // Auto-refresh orders every 5 seconds to show Telegram approval updates
+        setInterval(async () => {
+            if (apiKey) {
+                await loadOrders();
+                console.log('🔄 Auto-refreshed orders from database');
+            }
+        }, 5000);
+
         // Prevent accidental back navigation to login after authentication
         window.history.pushState(null, null, window.location.pathname);
         window.addEventListener('popstate', function (event) {
